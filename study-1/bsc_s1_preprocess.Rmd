@@ -1,0 +1,420 @@
+---
+title: "bsc_mar24_preprocess"
+output: html_document
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(stringi)
+library(httr)
+library(lsa)
+library(openxlsx)
+
+df_deid <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_raw_deid.csv")
+bsc_valuesplusvectors <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc_valuesplusvectors.csv")
+county_data <- read.csv("~/Google Drive/My Drive/american's dream/countydata/county_data.csv")
+```
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_bsc <- df_deid %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+define income and edu as factors
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+add continuous income and edu vars
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income_num = as.numeric(income),
+         edu_num = as.numeric(edu))
+```
+
+ethnicity
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(hispanic = ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0))
+```
+
+fix race
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate_at(vars(race_1:race_8),function(x){as.character(x)}) %>% 
+  mutate_at(vars(race_1:race_8),function(x){replace_na(x,"")}) %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num_5 = ifelse(race_5 != "",1,0),
+         race_num_6 = ifelse(race_6 != "",1,0),
+         race_num_7 = ifelse(race_7 != "",1,0),
+         race_num_8 = ifelse(race_8 != "",1,0),
+         race_num = race_num_1 + race_num_3 + race_num_4 + race_num_5 + race_num_6 + race_num_7 + race_num_8,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_3,race_4,race_5,race_6,race_7,race_8)),
+         race = ifelse(race == "",NA,race))
+```
+
+gender
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(man = ifelse(gender == "man",1,0))
+```
+
+
+clean words
+
+```{r}
+df_bsc_allvalues <- df_bsc %>% 
+  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59) %>% 
+  pivot_longer(-PID,
+               names_to = "names",
+               values_to = "value") %>% 
+  separate(names,into = c("type","temp","temp1"),sep = "_") %>% 
+  group_by(PID) %>% 
+  mutate(val_num = seq(1,10,1)) %>% 
+  dplyr::select(PID,val_num,value) %>% 
+  mutate(value = tolower(value),
+         value = str_replace(value,"-"," "),
+         value = str_replace_all(value," ","_"),
+         value = ifelse(str_sub(value,start = -1) == "_",
+                        stri_sub(value,1,-2),value))
+```
+
+attach vectors generated from glove script
+
+```{r}
+df_bsc_values <- df_bsc_allvalues %>% 
+  left_join(bsc_valuesplusvectors %>% 
+              dplyr::select(-word),by = c("PID","val_num"))
+
+#long format for csv
+df_bsc_long <- df_bsc %>% 
+  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59) %>% 
+  pivot_longer(-c(PID,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59),
+               names_to = "names",
+               values_to = "value") %>% 
+  pivot_longer(-c(PID,names,value),
+               names_to = "names_2",
+               values_to = "weight") %>% 
+  separate(names,into = c("type","temp","num"),sep = "_") %>% 
+  separate(names_2,into = c("type_2","temp_2","num_2"),sep = "_") %>% 
+  filter(num == num_2 & type == type_2) %>% 
+  dplyr::select(PID,type,value,weight) %>% 
+  group_by(PID) %>% 
+  mutate(val_num = seq(1,10,1)) %>% 
+  left_join(df_bsc_values %>% 
+              rename(value_1 = value),by = c("PID","val_num")) %>% 
+  dplyr::select(PID,val_num,type,value_1,weight,X1:X100) %>% 
+  rename(value = value_1)
+```
+
+For each participant and each type, we take the average of each column weighted by the importance indicated by the participants. Then, we take the cosine similarity between each of the two perspectives, per participant.
+
+```{r,warning=FALSE,message=FALSE}
+#prep df for loop
+df_bsc_weightsvalues <- df_bsc %>% 
+  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59) %>% 
+  pivot_longer(-c(PID,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59),
+               names_to = "names",
+               values_to = "value") %>% 
+  pivot_longer(-c(PID,names,value),
+               names_to = "names_2",
+               values_to = "weight") %>% 
+  separate(names,into = c("type","temp","num"),sep = "_") %>% 
+  separate(names_2,into = c("type_2","temp_2","num_2"),sep = "_") %>% 
+  filter(num == num_2 & type == type_2) %>% 
+  dplyr::select(PID,type,value,weight) %>% 
+  group_by(PID) %>% 
+  mutate(val_num = seq(1,10,1)) %>% 
+  left_join(df_bsc_values %>% 
+              rename(value_1 = value),by = c("PID","val_num")) %>% 
+  dplyr::select(PID,val_num,type,value_1,weight,X1:X100) %>% 
+  rename(value = value_1) %>% 
+  select(PID:weight,X1:X100) %>% 
+  pivot_longer(-c(PID,val_num,type,value,weight),
+               names_to = "names",
+               values_to = "values") %>% 
+  mutate(weigthed_value = values*weight/100) %>% 
+  select(-values) %>% 
+  pivot_wider(names_from = names,
+              values_from = weigthed_value) %>% 
+  group_by(PID,type) %>% 
+  summarise_at(vars(X1:X100),function(x){sum(x,na.rm = T)}) %>% 
+  ungroup() 
+
+df_similarities = tibble(PID = -999,simi = NA)
+PIDs = unique(df_bsc$PID)
+
+for(i in PIDs){
+  
+mt_cosine <- df_bsc_weightsvalues %>% 
+  filter(PID == i) %>% 
+  select(type,X1:X100) %>% 
+  pivot_longer(X1:X100,
+               names_to = "names",
+               values_to = "values") %>% 
+  pivot_wider(names_from = "type",
+              values_from = "values") %>% 
+  select(-names) %>% 
+  as.matrix() %>% 
+  cosine() 
+
+cosine_value = mt_cosine["uspaper","uspractice"]
+
+current_scores = tibble(PID = i,
+                        simi = cosine_value)
+
+df_similarities <- df_similarities %>% 
+  bind_rows(current_scores)
+
+}
+
+```
+
+attach back to bsc + mark ineligible
+
+```{r}
+df_bsc <- df_bsc %>% 
+  left_join(df_similarities,by = "PID") %>% 
+  mutate(check_1 = ifelse(is.na(simi),1,0))
+```
+
+reverse-score items
+
+```{r}
+#antiest_4,SDO_3,SDO_4,SDO_7,SDO_8,TIPI_2,TIPI_6,TIPI_8,TIPI_9,TIPI_10
+df_bsc <- df_bsc %>% 
+  mutate(antiest_4R = 8 - antiest_4,
+         SDO_3R = 8 - SDO_3,
+         SDO_4R = 8 - SDO_4,
+         SDO_7R = 8 - SDO_7,
+         SDO_8R = 8 - SDO_8,
+         TIPI_2R = 8 - TIPI_2,
+         TIPI_6R = 8 - TIPI_6,
+         TIPI_8R = 8 - TIPI_8,
+         TIPI_9R = 8 - TIPI_9,
+         TIPI_10R = 8 - TIPI_10)
+```
+
+
+create mean scores
+
+```{r}
+df_bsc <- df_bsc %>% 
+  rowwise() %>% 
+  mutate(antiest = mean(c(antiest_1,
+                          antiest_2,
+                          antiest_3,
+                          antiest_4R),na.rm = T),
+         trust_deminst = mean(c(trust_congress,
+                                trust_gov,
+                                trust_courts),na.rm = T),
+         trust_natinst = mean(c(trust_media,
+                                trust_edu,
+                                trust_police,
+                                trust_millitary,
+                                trust_finance,
+                                trust_med),na.rm = T),
+         trust_science = mean(c(trust_science_1,
+                                trust_science_2,
+                                trust_science_3),na.rm = T),
+         SDO = mean(c(SDO_1,
+                      SDO_2,
+                      SDO_3R,
+                      SDO_4R,
+                      SDO_5,
+                      SDO_6,
+                      SDO_7R,
+                      SDO_8R),na.rm = T),
+         TIPI_extra = mean(c(TIPI_1,TIPI_6R),na.rm = T),
+         TIPI_agree = mean(c(TIPI_2R,TIPI_7),na.rm = T),
+         TIPI_consc = mean(c(TIPI_3,TIPI_8R),na.rm = T),
+         TIPI_neuro = mean(c(TIPI_4,TIPI_9R),na.rm = T),
+         TIPI_open = mean(c(TIPI_5,TIPI_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+attention check
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(check_2 = ifelse(check != 5 | is.na(check),1,0))
+```
+
+order of blocks
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(block_order = ifelse(FL_33_DO_USPAPER == 1,"paper_first","practice_first"))
+```
+
+rename
+
+```{r}
+df_bsc <- df_bsc %>% 
+  rename(ideo_con = ideo_1,
+         ideo_lib = ideo_2,
+         ideo_demsoc = ideo_3,
+         ideo_lbrtn = ideo_4,
+         ideo_prog = ideo_5,
+         state = county_1,
+         county = county_2)
+```
+
+county data
+
+```{r}
+df_bsc <- df_bsc %>% 
+  left_join(county_data,by = c("state","county"))
+```
+
+dummy-code voting intentions
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(vote_2024_trump = ifelse(vote_2024 == "Donald Trump",1,0),
+         vote_2024_biden = ifelse(vote_2024 == "Joe Biden",1,0),
+         vote_2024_rfkj = ifelse(vote_2024 == "Robert F. Kennedy Jr.",1,0),
+         vote_2024_other = ifelse(vote_2024 == "Other",1,0))
+```
+
+attach openai similarities (see separate script)
+
+```{r}
+openai_simis <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/cosinesimi_openai.csv")
+
+df_bsc <- df_bsc %>% 
+  left_join(openai_simis,by = "PID")
+```
+
+reverse simi scores
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(brokencontract_glove = 1 - simi,
+         brokencontract_openai = 1 - simi_openai)
+```
+
+
+take only necessary variables
+
+```{r}
+df_bsc <- df_bsc %>% 
+  dplyr::select(PID,
+                brokencontract_glove,
+                brokencontract_openai,
+                simi,
+                simi_openai,
+                antiest:TIPI_open,
+                vote_tomorrow,
+                vote_likely,
+                change,
+                antiest_1,
+                antiest_2,
+                antiest_3,
+                antiest_4R,
+                trust_congress,
+                trust_gov,
+                trust_courts,
+                trust_media,
+                trust_edu,
+                trust_police,
+                trust_millitary,
+                trust_finance,
+                trust_med,
+                trust_science_1,
+                trust_science_2,
+                trust_science_3,
+                SDO_1,
+                SDO_2,
+                SDO_3R,
+                SDO_4R,
+                SDO_5,
+                SDO_6,
+                SDO_7R,
+                SDO_8R,
+                TIPI_1,TIPI_6R,
+                TIPI_2R,TIPI_7,
+                TIPI_3,TIPI_8R,
+                TIPI_4,TIPI_9R,
+                TIPI_5,TIPI_10R,
+                check_1,
+                check_2,
+                block_order,
+                ideo_con:ideo_prog,
+                party_id,
+                vote_2020,
+                vote_2024,
+                vote_2024_trump:vote_2024_other,
+                income,
+                income_num,
+                edu,
+                edu_num,
+                race,
+                hispanic,
+                age,
+                gender,
+                man,
+                state,
+                county,
+                county_gini:county_medianincome,
+                feedback)
+```
+
+write csv
+
+```{r}
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc.csv",row.names = F)
+write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc_long.csv",row.names = F)
+```
+
