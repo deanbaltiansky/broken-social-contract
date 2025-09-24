@@ -1,0 +1,215 @@
+---
+title: "Word embeddings with OpenAI"
+author: "Dean Baltiansky"
+output: html_document
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(httr)
+library(lsa)
+library(tidyverse)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-1/data/"
+
+df_deid <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
+
+Sys.setenv(OPENAI_API_KEY = "INSERT API KEY HERE")
+```
+
+prep data
+
+```{r}
+strip_nul <- function(x) {
+  vapply(x, function(s) {
+    s <- ifelse(is.na(s), "", s)
+    r <- charToRaw(enc2utf8(s))
+    r <- r[r != as.raw(0x00)]       # drop byte 0x00
+    rawToChar(r)
+  }, character(1))
+}
+
+drop_controls <- function(x) {
+  # remove ASCII control chars except NUL (0x00), which we strip separately
+  gsub("[\\x01-\\x1F\\x7F]", " ", x, perl = TRUE)
+}
+
+clean_text <- function(x) {
+  x <- strip_nul(x)        # remove any NUL bytes safely
+  x <- drop_controls(x)    # normalize other control chars
+  x <- trimws(x)
+  enc2utf8(x)
+}
+
+df_bscwords_long <- df_deid %>% 
+  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59) %>% 
+  pivot_longer(-c(PID,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59),
+               names_to = "names",
+               values_to = "value") %>% 
+  pivot_longer(-c(PID,names,value),
+               names_to = "names_2",
+               values_to = "weight") %>% 
+  separate(names,into = c("type","temp","num"),sep = "_") %>% 
+  separate(names_2,into = c("type_2","temp_2","num_2"),sep = "_") %>% 
+  filter(num == num_2 & type == type_2) %>% 
+  dplyr::select(PID,type,value,weight) %>% 
+  group_by(PID) %>% 
+  mutate(val_num = seq(1,10,1)) %>% 
+  ungroup() %>% 
+  mutate(value = strip_nul(value),
+         value = clean_text(value),
+         value = str_to_lower(value),
+         value = str_squish(value))
+
+#write.csv(df_bscwords_long,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/df_bscwords_long.csv",row.names = F)
+
+uniquevalues <- df_bscwords_long %>% 
+  select(value) %>% 
+  filter(value != "") %>% 
+  distinct() %>% 
+  arrange(value) %>% 
+  unlist() %>% 
+  unname()
+  
+```
+
+```{r}
+library(httr2)
+library(jsonlite)
+
+model <- "text-embedding-3-large"
+
+dimensions <- 3072
+
+batch_size <- 100
+
+total <- length(uniquevalues)
+emb_matrix <- matrix(NA_real_, nrow = total, ncol = dimensions)
+values_out <- character(total)
+
+counter <- 0
+
+for (i in seq(1, total, by = batch_size)) {
+  batch_idx <- i:min(i + batch_size - 1, total)
+  batch <- uniquevalues[batch_idx]
+
+  body <- list(model = model, input = unname(batch), dimensions = dimensions)
+
+  resp <- request("https://api.openai.com/v1/embeddings") |>
+    req_headers(Authorization = paste("Bearer", Sys.getenv("OPENAI_API_KEY"))) |>
+    req_body_json(body, auto_unbox = TRUE) |>
+    req_perform() |>
+    # IMPORTANT: keep lists as lists so $embedding exists
+    resp_body_json(simplifyVector = FALSE)
+
+  # resp$data is a list; each element has $embedding (numeric vector)
+  for (j in seq_along(batch)) {
+    counter <- counter + 1
+    vec <- resp$data[[j]]$embedding
+    # safety: ensure numeric
+    vec <- as.numeric(vec)
+
+    emb_matrix[batch_idx[j], ] <- vec
+    values_out[batch_idx[j]] <- batch[j]
+
+    cat(sprintf("Retrieved embedding for value %d of %d\n", counter, total))
+  }
+}
+
+# Build final data.frame: reason + 3072 numeric columns
+df_embeddings <- data.frame(value = values_out, as.data.frame(emb_matrix), check.names = FALSE)
+
+# write
+#write.csv(df_embeddings,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/bsc_embeddings.csv",row.names = F)
+```
+
+
+attach back to long data
+
+```{r}
+df_bscwords_long <- df_bscwords_long %>% 
+  left_join(df_embeddings,by = "value") %>% 
+  group_by(PID,val_num) %>% 
+  slice(1) %>% 
+  ungroup()
+```
+
+get weighted cosine similarity
+
+```{r}
+df_bsc_weightsvalues <- df_bscwords_long %>% 
+  pivot_longer(-c(PID,val_num,type,value,weight),
+               names_to = "names",
+               values_to = "values") %>% 
+  mutate(values = as.numeric(values)) %>% 
+  mutate(weigthed_value = values*weight/100) %>% 
+  select(-values) %>% 
+  pivot_wider(names_from = names,
+              values_from = weigthed_value) %>% 
+  group_by(PID,type) %>% 
+  summarise_at(vars(V1:V3072),function(x){sum(x,na.rm = T)}) %>% 
+  ungroup()
+
+df_similarities = tibble(PID = -999,simi = NA)
+PIDs = unique(df_bsc_weightsvalues$PID)
+counter = 0
+
+for(i in PIDs){
+  
+  counter = counter + 1
+  
+mt_cosine <- df_bsc_weightsvalues %>% 
+  filter(PID == i) %>% 
+  select(type,V1:V3072) %>% 
+  pivot_longer(V1:V3072,
+               names_to = "names",
+               values_to = "values") %>% 
+  pivot_wider(names_from = "type",
+              values_from = "values") %>% 
+  select(-names) %>% 
+  as.matrix() %>% 
+  cosine() 
+
+cosine_value = mt_cosine["uspaper","uspractice"]
+
+current_scores = tibble(PID = i,
+                        simi = cosine_value)
+
+print(counter)
+
+df_similarities <- df_similarities %>% 
+  bind_rows(current_scores)
+
+}
+```
+
+write.csv
+
+```{r}
+df_similarities <- df_similarities %>% 
+  filter(PID != -999) %>% 
+  rename(simi_openai = simi)
+
+#write.csv(df_similarities,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/bsc_cosinesimilarities.csv",row.names = F)
+```
+
+
+
+
+
+
