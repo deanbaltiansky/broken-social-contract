@@ -1,5 +1,5 @@
 ---
-title: "bsc_mar24_preprocess"
+title: "bsc_s1_preprocess"
 output: html_document
 ---
 
@@ -21,14 +21,12 @@ detachAllPackages()
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(stringi)
-library(httr)
-library(lsa)
-library(openxlsx)
 
-df_deid <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_raw_deid.csv")
-bsc_valuesplusvectors <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc_valuesplusvectors.csv")
-county_data <- read.csv("~/Google Drive/My Drive/american's dream/countydata/county_data.csv")
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-1/data/"
+
+df_deid <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
+county_data <- readr::read_csv(paste0(repo_url,"county_data.csv"), show_col_types = FALSE)
+bsc_cosinesimilarities <- readr::read_csv(paste0(repo_url,"bsc_cosinesimilarities.csv"), show_col_types = FALSE)
 ```
 
 remove ineligible participants
@@ -111,124 +109,6 @@ df_bsc <- df_bsc %>%
 ```
 
 
-clean words
-
-```{r}
-df_bsc_allvalues <- df_bsc %>% 
-  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59) %>% 
-  pivot_longer(-PID,
-               names_to = "names",
-               values_to = "value") %>% 
-  separate(names,into = c("type","temp","temp1"),sep = "_") %>% 
-  group_by(PID) %>% 
-  mutate(val_num = seq(1,10,1)) %>% 
-  dplyr::select(PID,val_num,value) %>% 
-  mutate(value = tolower(value),
-         value = str_replace(value,"-"," "),
-         value = str_replace_all(value," ","_"),
-         value = ifelse(str_sub(value,start = -1) == "_",
-                        stri_sub(value,1,-2),value))
-```
-
-attach vectors generated from glove script
-
-```{r}
-df_bsc_values <- df_bsc_allvalues %>% 
-  left_join(bsc_valuesplusvectors %>% 
-              dplyr::select(-word),by = c("PID","val_num"))
-
-#long format for csv
-df_bsc_long <- df_bsc %>% 
-  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59) %>% 
-  pivot_longer(-c(PID,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59),
-               names_to = "names",
-               values_to = "value") %>% 
-  pivot_longer(-c(PID,names,value),
-               names_to = "names_2",
-               values_to = "weight") %>% 
-  separate(names,into = c("type","temp","num"),sep = "_") %>% 
-  separate(names_2,into = c("type_2","temp_2","num_2"),sep = "_") %>% 
-  filter(num == num_2 & type == type_2) %>% 
-  dplyr::select(PID,type,value,weight) %>% 
-  group_by(PID) %>% 
-  mutate(val_num = seq(1,10,1)) %>% 
-  left_join(df_bsc_values %>% 
-              rename(value_1 = value),by = c("PID","val_num")) %>% 
-  dplyr::select(PID,val_num,type,value_1,weight,X1:X100) %>% 
-  rename(value = value_1)
-```
-
-For each participant and each type, we take the average of each column weighted by the importance indicated by the participants. Then, we take the cosine similarity between each of the two perspectives, per participant.
-
-```{r,warning=FALSE,message=FALSE}
-#prep df for loop
-df_bsc_weightsvalues <- df_bsc %>% 
-  dplyr::select(PID,uspaper_list_48:uspaper_list_57,uspractice_list_55:uspractice_list_59,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59) %>% 
-  pivot_longer(-c(PID,uspaper_weight_48:uspaper_weight_57,uspractice_weight_55:uspractice_weight_59),
-               names_to = "names",
-               values_to = "value") %>% 
-  pivot_longer(-c(PID,names,value),
-               names_to = "names_2",
-               values_to = "weight") %>% 
-  separate(names,into = c("type","temp","num"),sep = "_") %>% 
-  separate(names_2,into = c("type_2","temp_2","num_2"),sep = "_") %>% 
-  filter(num == num_2 & type == type_2) %>% 
-  dplyr::select(PID,type,value,weight) %>% 
-  group_by(PID) %>% 
-  mutate(val_num = seq(1,10,1)) %>% 
-  left_join(df_bsc_values %>% 
-              rename(value_1 = value),by = c("PID","val_num")) %>% 
-  dplyr::select(PID,val_num,type,value_1,weight,X1:X100) %>% 
-  rename(value = value_1) %>% 
-  select(PID:weight,X1:X100) %>% 
-  pivot_longer(-c(PID,val_num,type,value,weight),
-               names_to = "names",
-               values_to = "values") %>% 
-  mutate(weigthed_value = values*weight/100) %>% 
-  select(-values) %>% 
-  pivot_wider(names_from = names,
-              values_from = weigthed_value) %>% 
-  group_by(PID,type) %>% 
-  summarise_at(vars(X1:X100),function(x){sum(x,na.rm = T)}) %>% 
-  ungroup() 
-
-df_similarities = tibble(PID = -999,simi = NA)
-PIDs = unique(df_bsc$PID)
-
-for(i in PIDs){
-  
-mt_cosine <- df_bsc_weightsvalues %>% 
-  filter(PID == i) %>% 
-  select(type,X1:X100) %>% 
-  pivot_longer(X1:X100,
-               names_to = "names",
-               values_to = "values") %>% 
-  pivot_wider(names_from = "type",
-              values_from = "values") %>% 
-  select(-names) %>% 
-  as.matrix() %>% 
-  cosine() 
-
-cosine_value = mt_cosine["uspaper","uspractice"]
-
-current_scores = tibble(PID = i,
-                        simi = cosine_value)
-
-df_similarities <- df_similarities %>% 
-  bind_rows(current_scores)
-
-}
-
-```
-
-attach back to bsc + mark ineligible
-
-```{r}
-df_bsc <- df_bsc %>% 
-  left_join(df_similarities,by = "PID") %>% 
-  mutate(check_1 = ifelse(is.na(simi),1,0))
-```
-
 reverse-score items
 
 ```{r}
@@ -284,11 +164,12 @@ df_bsc <- df_bsc %>%
   ungroup()
 ```
 
-attention check
+check and eligibility
 
 ```{r}
 df_bsc <- df_bsc %>% 
-  mutate(check_2 = ifelse(check != 5 | is.na(check),1,0))
+  mutate(check_2 = ifelse(check != 5 | is.na(check),1,0),
+         is_elg = ifelse(check_2 == 1,0,1))
 ```
 
 order of blocks
@@ -328,21 +209,18 @@ df_bsc <- df_bsc %>%
          vote_2024_other = ifelse(vote_2024 == "Other",1,0))
 ```
 
-attach openai similarities (see separate script)
+attach openai similarities (see separate script "bsc_openaiwordembeddings.Rmd")
 
 ```{r}
-openai_simis <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/cosinesimi_openai.csv")
-
 df_bsc <- df_bsc %>% 
-  left_join(openai_simis,by = "PID")
+  left_join(bsc_cosinesimilarities,by = "PID")
 ```
 
 reverse simi scores
 
 ```{r}
 df_bsc <- df_bsc %>% 
-  mutate(brokencontract_glove = 1 - simi,
-         brokencontract_openai = 1 - simi_openai)
+  mutate(brokencontract_openai = 1 - simi_openai)
 ```
 
 
@@ -351,9 +229,7 @@ take only necessary variables
 ```{r}
 df_bsc <- df_bsc %>% 
   dplyr::select(PID,
-                brokencontract_glove,
                 brokencontract_openai,
-                simi,
                 simi_openai,
                 antiest:TIPI_open,
                 vote_tomorrow,
@@ -388,8 +264,8 @@ df_bsc <- df_bsc %>%
                 TIPI_3,TIPI_8R,
                 TIPI_4,TIPI_9R,
                 TIPI_5,TIPI_10R,
-                check_1,
                 check_2,
+                is_elg,
                 block_order,
                 ideo_con:ideo_prog,
                 party_id,
@@ -414,7 +290,6 @@ df_bsc <- df_bsc %>%
 write csv
 
 ```{r}
-write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc.csv",row.names = F)
-write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc_long.csv",row.names = F)
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/df_bsc.csv",row.names = F)
 ```
 
