@@ -300,5 +300,7 @@ write csv
 
 ```{r}
 write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/df_bsc.csv",row.names = F)
+
+write.csv(df_bsc %>% filter(is_elg == 1),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/df_bsc_elg.csv",row.names = F)
 ```
 

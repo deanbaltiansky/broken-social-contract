@@ -623,7 +623,7 @@ alpha_table <- df_bsc_elg %>%
 alpha <- alpha_table$total[1]
 ```
 
-Please indicate how much you trust or distrust the following institutions (1 = Strongly *Distrust* to 7 = *Strongly Trust*)\
+Please indicate how much you trust or distrust the following institutions (1 = *Strongly Distrust* to 7 = *Strongly Trust*)\
 \
 1. The US Congress / Legislative Branch\
 2. The US Government / Executive Branch\
@@ -670,7 +670,7 @@ alpha_table <- df_bsc_elg %>%
 alpha <- alpha_table$total[1]
 ```
 
-Please indicate how much you trust or distrust the following institutions (1 = Strongly *Distrust* to 7 = *Strongly Trust*)\
+Please indicate how much you trust or distrust the following institutions (1 = *Strongly Distrust* to 7 = *Strongly Trust*)\
 \
 1. Mainstream media in the US (e.g., CNN, FOX News, MSNBC, New York Times, Wall-Street Journal, USA Today) \
 2. The education system in the US\
@@ -888,12 +888,23 @@ df_bsc_elg %>%
 
 ## Correlation matrix
 
-Similarity score, likelihood to vote in the 2024 Presidential election, support for radical change, anti-establishment sentiment, trust in democratic institutions, trust in mainstream societal institutions, trust in science, conservatism, SDO, TIPI extraversion, TIPI agreeableness, TIPI Conscientiousness, TIPI neuroticism, TIPI openness.
+Explore further correlations here: [Shiny App].
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
 df_bsc_elg %>% 
-  dplyr::select(simi,simi_openai,brokencontract_glove,brokencontract_openai,vote_likely,change,antiest:trust_science,SDO,ideo_con,TIPI_extra:TIPI_open) %>%
+  rename(brokencontract = brokencontract_openai) %>% 
+  dplyr::select(brokencontract,antiest,change,trust_deminst,trust_natinst,trust_science,vote_likely,
+                SDO,ideo_con:ideo_prog,TIPI_extra:TIPI_open) %>%
   corPlot(upper = TRUE,stars = TRUE,xsrt = 270)
+
+df_bsc_elg %>% 
+  select(brokencontract_openai,antiest:trust_science,vote_likely:change,SDO:TIPI_open,vote_likely:change,ideo_con:ideo_prog,
+         republican:independent,
+         vote_2024_trump:vote_2024_other,
+         man,white,age,income_num,edu_num,
+         county_gini:county_medianincome) %>% 
+  variable.names() %>% 
+  write.csv("~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-1/data/var_info.csv",row.names = F)
 ```
 
 ```{r,include=FALSE}
