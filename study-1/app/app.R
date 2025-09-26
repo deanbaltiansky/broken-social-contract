@@ -35,6 +35,7 @@ load_var_info <- function() {
 }
 
 ui <- fluidPage(
+  tags$head(tags$title("Correlations App")),
   titlePanel("Broken Social Contract — Correlations"),
   sidebarLayout(
     sidebarPanel(
