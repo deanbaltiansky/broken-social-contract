@@ -13,8 +13,6 @@ What are the consequences of a broken social contract? The current research posi
      style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
     FULL REPORT ↗
   </a>\
-\
-
 <a href="./studies/study-1/app/index.html" target="_blank" rel="noopener"
      style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
     EXPLORE CORRELATIONS ↗
