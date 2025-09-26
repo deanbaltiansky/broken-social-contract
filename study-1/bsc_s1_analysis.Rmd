@@ -1,14 +1,32 @@
 ---
 title: "Broken Social Contract"
-subtitle: "March 2024: Analysis"
-output: 
+subtitle: "Study 1: Analysis Report"
+Author: "Dean Baltiansky"
+output:
   html_document:
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
     code_folding: hide
+knit: (function(input_file, encoding) { rmarkdown::render(input_file, encoding = encoding, output_file = 'index.html', output_dir = here::here('docs','studies','study-1')); })
 ---
 
-```{r setup, include=FALSE}
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r,include=FALSE}
 library(apa)
 library(see)
 library(lme4)
@@ -33,8 +51,10 @@ library(SnowballC)
 library(hunspell)
 library(quanteda)
 
-df_bsc <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc.csv")
-df_bsc_long <- read.csv("~/Google Drive/My Drive/american's dream/March 2024/data/df_bsc_long.csv")
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-1/data/"
+
+df_bsc <- readr::read_csv(paste0(repo_url,"df_bsc.csv"), show_col_types = FALSE)
+df_bsc_long <- readr::read_csv(paste0(repo_url,"df_bsc_long.csv"), show_col_types = FALSE)
 ```
 
 ```{r,include=FALSE}
@@ -55,52 +75,84 @@ df_bsc <- df_bsc %>%
                             "2yearColl",
                             "4yearColl",
                             "MA",
-                            "PHD")))
+                            "PHD")),
+         county_gini = as.numeric(county_gini),
+         county_density = as.numeric(county_density),
+         county_medianincome = as.numeric(county_medianincome))
 
 df_bsc_elg <- df_bsc %>% 
-  filter(check_1 == 0 & check_2 == 0)
+  filter(is_elg == 1)
+
+elg_PIDs <- df_bsc_elg %>% 
+  select(PID) %>% 
+  unlist() %>% 
+  unname()
+
+df_bsc_long_elg <- df_bsc_long %>% 
+  filter(PID %in% elg_PIDs)
 ```
 
 # Background
 
-This is a preregistered nationally representative study.
+This is a preregistered nationally representative study. See preregistration <a href="https://osf.io/gtv5n/?view_only=4466b8cdb0664fb7892aa79506fce2b3" target="_blank">here</a>.\
+\
+This is joint work with Prof. <a href="https://sandramatz.com/" target="_blank">Sandra Matz</a>, led by me as the Principal Investigator.
 
 ## Description
 
-In this project, we examine the role of a broken social contract in people’s trust in institutions and anti-establishment sentiment. Specifically, we identify, through various methods, gaps between what people believe they are promised by the government on paper and what they are being provided by the government in practice. We then examine the explanatory role this gap plays in various socio-political behavioral and attitudinal outcomes.
+In this project, we examine the role of the psychological experience of a broken social contract in people’s trust in institutions and anti-establishment sentiment. To measure this, we identify gaps between what people believe they are promised by the state on paper (i.e., the constitution) and what they are being provided by the government in practice. Controlling for a wide range of potential confounds, we then examine the explanatory role this gap plays in various socio-political behavioral and attitudinal outcomes; broadly defined as **political discontent**.
 
 ## Hypotheses
 
-1. Similarity between perceived guiding values of the US on paper and perceived guiding values of the US in practice is positively associated with likelihood to vote in the 2024 Presidential Election.\
-2. Similarity between perceived guiding values of the US on paper and perceived guiding values of the US in practice is negatively associated with support for radical change.\
-3. Similarity between perceived guiding values of the US on paper and perceived guiding values of the US in practice is negatively associated with anti-establishment sentiment.\
-4. Similarity between perceived guiding values of the US on paper and perceived guiding values of the US in practice is positively associated with trust in democratic institutions (executive, legislative, and judicial branch).\
-5. Similarity between perceived guiding values of the US on paper and perceived guiding values of the US in practice is positively associated with trust in mainstream societal institutions (media, education, police, military, finance, medicine).
+1. The psychological experience of a broken social contract is negatively associated with the likelihood of voting in the 2024 Presidential Election.\
+2. The psychological experience of a broken social contract is positively associated with support for radical change.\
+3. The psychological experience of a broken social contract is positively associated with anti-establishment sentiment.\
+4. The psychological experience of a broken social contract is negatively associated with trust in democratic governmental institutions (the executive, legislative, and judicial branches of government).\
+5. The psychological experience of a broken social contract is negatively associated with trust in mainstream non-political institutions (media, education, police, military, finance, medicine).
 
 ## Study design
 
 Two major parts:\
-1. Social contract: Participants will list the top five guiding values for the US on paper and the top five guiding values for the US in practice. For each of these perspectives, they will assign weights to each value based on its perceived importance to the US on paper and in practice, respectively.\
-2. Attitudes and individual differences: Participants will complete measures of anti-establishment sentiment, trust in institutions, trust in science, SDO, TIPI, support for radical change, and political identification/behavior.
+1. **Broken Social Contract:** Participants listed what they believe are the top five guiding values for the US on paper and what they believe are the top five guiding values for the US in practice. For each of these perspectives, they assigned weights to each value based on its perceived importance to the US on paper and in practice, respectively.\
+2. **Attitudes and individual differences:** Participants completed measures of anti-establishment sentiment, trust in institutions, support for radical change, voting intentions, Social Dominance Orientation (SDO), big five personality traits (i.e., openness, conscientiousness, extroversion, agreeableness, and neuroticism), political ideology and identification, and demographic information.
+
+## Computational analytic strategy
+
+We retrieved embeddings for each of the open-response guiding values inputted by participants, five for the US on paper and five for the US in practice. The embeddings were retrieved from OpenAI's API, using the <a href="https://platform.openai.com/docs/models/text-embedding-3-large" target="_blank">text-embedding-3-large</a> model. This gave us a 3,072-dimensional vector representing the phrase's meaning in a large multi-dimensional semantic space.\
+\
+Using participant-assigned weights, we then created weighted means for each perspective (US on paper and US in practice). This resulted in two 3,072-dimensional vectors, representing America's promise and America's policies in practice, as perceived by a single participant.\
+\
+To compare the two vectors, we calculated their cosine similarity. So, higher scores mean that America's policies resemble its promise, whereas lower scores mean that its policies do NOT resemble its promise.\
+\
+Finally, to arrive at a *broken social contract* score, we reverse-score the cosine similarity by subtracting it from 1.
 
 ## Analysis plan
 
 The following linear models will be conducted for each of these outcome variables: (1) Likelihood to vote in the 2024 Presidential election; (2) support for radical change; (3) anti-establishment sentiment; (4) trust in democratic institutions; (5) trust in mainstream societal institutions.\
 \
-1. Correlation matrix: Similarity score, likelihood to vote in the 2024 Presidential election, support for radical change, anti-establishment sentiment, trust in democratic institutions, trust in mainstream societal institutions, trust in science, conservatism, SDO, TIPI extraversion, TIPI agreeableness, TIPI Conscientiousness, TIPI neuroticism, TIPI openness.\
-2. Linear Model 1: Similarity score as predictor; conservatism as control.\
-3. Linear Model 2: Similarity score as predictor; conservatism, SDO, and TIPI agreeableness as controls.\
-4. Linear Model 3: Similarity score as predictor; conservatism, SDO, TIPI agreeableness, gender, race, ethnicity, income, education, and age as controls.\
-5. Linear Model 4: Similarity score as predictor; conservatism, SDO, TIPI agreeableness, gender, race, ethnicity, income, education, age, county mediation income, county GINI coefficient, and county density as controls. 
+1. Linear Model 1: Broken contract score as predictor; conservatism as control.\
+2. Linear Model 2: Broken contract score as predictor; conservatism, SDO, and agreeableness as controls.\
+3. Linear Model 3: Broken contract score as predictor; conservatism, SDO, agreeableness, gender, race, ethnicity, income, education, and age as controls.\
+4. Linear Model 4: Broken contract score as predictor; conservatism, SDO, agreeableness, gender, race, ethnicity, income, education, age, county mediation income, county GINI coefficient, and county density as controls.
 
+# Data collection
 
-# Attention Check
-
-But first, let's exclude participants who failed attention checks: one simple attention check imbedded in the anti-establishment scale and another with incoherent open-text.
+We collected data on 3/27/2024-3/28/2024 through Connect by CloudResearch; an online participant recruitment platform. The sample was intended to be representative of the U.S. population in March 2024 along the lines of gender (~50.4% women ~49.6% men), race (~58.9% non-Hispanic White, ~18.2% Hispanic or Latino, ~13.6% Black, ~6.3% Asian, and ~3% more than one race or other), age (~20.1% 18-29 years, ~25.9% 30-44 years, ~23.3% 45-59 years, and ~30.7% 60-99 years), and political party affiliation (41% Independents, 30% Republicans, and 28% Democrats). The target sample was set at 1,200 participants.\
+\
+We excluded participants who failed attention checks: one simple attention check embedded in the anti-establishment scale and another with incoherent open-text. Let's see how many eligible participants we end up with:
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+n_eligible <- df_bsc %>% 
+  group_by(is_elg) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  filter(is_elg == 1) %>% 
+  select(N) %>% 
+  unlist() %>% 
+  unname()
+
 df_bsc %>% 
-  group_by(check_1,check_2) %>% 
+  group_by(is_elg) %>% 
   summarise(N = n()) %>% 
   ungroup() %>% 
   mutate(Perc = round(100*(N/sum(N)),2)) %>% 
@@ -111,7 +163,7 @@ df_bsc %>%
                 position = "left")
 ```
 
-Great. That leaves us with 1188 eligible participants.
+Great. That leaves us with `r n_eligible` eligible participants.
 
 # Demographics
 
@@ -119,11 +171,15 @@ Great. That leaves us with 1188 eligible participants.
 
 ```{r,results='asis',echo=TRUE,warning=FALSE}
 df_bsc_elg %>% 
-  group_by(race,hispanic) %>% 
+  mutate(race = ifelse(is.na(race),"Other (please specify)",race)) %>% 
+  mutate(ethnicity = ifelse(is.na(hispanic),"Non-Hisapnic",
+                            ifelse(hispanic == 1,"Hispanic","Non-Hispanic"))) %>% 
+  group_by(race,ethnicity) %>% 
   summarise(N = n()) %>% 
   ungroup() %>% 
   mutate(Perc = round(100*(N/sum(N)),2)) %>% 
   ungroup() %>% 
+  arrange(desc(Perc)) %>% 
   kbl() %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
@@ -140,6 +196,7 @@ df_bsc_elg %>%
   ungroup() %>% 
   mutate(Perc = round(100*(N/sum(N)),2)) %>% 
   ungroup() %>% 
+  arrange(desc(Perc)) %>% 
   kbl() %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
@@ -191,10 +248,25 @@ df_bsc_elg %>%
         axis.title.y = element_blank()) +
   coord_flip()
 
-png("fig1.png", width = 20, height = 9, units = "in",res = 1200, bg = "transparent")
+
+```
+
+## County inequallity
+
+County GINI coefficient was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
 df_bsc_elg %>% 
-  ggplot(aes(x = income)) +
-  geom_bar() +
+  filter(!is.na(county_gini)) %>% 
+  ggplot(aes(x = county_gini)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 0.005) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_gini,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -202,21 +274,65 @@ df_bsc_elg %>%
         axis.line = element_line(color = "grey66"),
         axis.text.y = element_text(color = "black"),
         axis.text.x = element_text(color = "black",
-                                   face = "bold",
-                                   angle = 270),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank())
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
 
-df_bsc_elg %>% 
-  ggplot(aes(x = income_num)) +
-  geom_histogram(binwidth = 1,
-                 color = "black",
-                 fill = "lightblue") +
-  scale_x_continuous(limits = c(0,13))
+## County median income
 
+County median income was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
 df_bsc_elg %>% 
-  group_by(income) %>% 
-  summarise(n = n())
+  filter(!is.na(county_medianincome)) %>% 
+  ggplot(aes(x = county_medianincome)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 5000) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_medianincome,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## County density
+
+County density was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
+df_bsc_elg %>% 
+  filter(!is.na(county_density)) %>% 
+  ggplot(aes(x = county_density)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 500) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_density,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
 ```
 
 # Politics
@@ -310,67 +426,101 @@ df_bsc_elg %>%
 ```
 
 
-# Measures
+# Social Contract Measure
 
-## Open responses
+## Values: US on paper
 
-First, I'll just show the values mentioned for each perspective.
+Since its independence and onwards, the formation of the United States as a sovereign country was based on a number of values, all of which were inscribed in the constitution. This document, importantly, has evolved since it was first written.\
+\
+**ON PAPER, what do you think are the values that the U.S. stands for? Please list FIVE values.**\
+\
+Each value should consist of 1-3 words. Try to be as clear and succinct as possible.\
+\
+*paste disabled\
+\
+*below are values mentioned, ordered by the number of mentions*
 
-### US on paper
-
-```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE}
-df_bsc_long %>%
-  left_join(df_bsc_elg %>% 
-              dplyr::select(PID) %>% 
-              mutate(elg = 1),by = "PID") %>% 
-  filter(!is.na(elg)) %>% 
-  dplyr::select(type,value) %>%
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_long_elg %>% 
   filter(type == "uspaper") %>% 
-  group_by(value) %>% 
+  group_by(value) %>%
   summarise(N = n()) %>% 
   ungroup() %>% 
   mutate(Perc = round(100*(N/sum(N)),2)) %>% 
   ungroup() %>% 
   arrange(desc(N)) %>% 
-  dplyr::select(N,Perc,value) %>% 
   kbl() %>% 
   kable_styling(bootstrap_options = "hover",
                 position = "left") %>% 
   scroll_box(width = "100%", height = "400px")
 ```
 
-### US in practice
+## Weights: US on paper
 
-```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE}
-df_bsc_long %>%
-  left_join(df_bsc_elg %>% 
-              dplyr::select(PID) %>% 
-              mutate(elg = 1),by = "PID") %>% 
-  filter(!is.na(elg)) %>% 
-  dplyr::select(type,value) %>%
+*participants were shown the values that they inputted in the previous question and were asked to assign them a forced sum of 100 points, based on its perceived importance to the US on paper.*\
+\
+The values you listed are shown below.\
+\
+Now, we ask you to indicate how important you think each value is to the U.S. on paper.\
+\
+To that end, you have a sum of 100 points. Please allocate those points to the values you listed based on how important you think they are to the U.S. ON PAPER.\
+\
+For example, if you think all five values are equally important, each of them would get 20 points. If you think value X is more important than value Y, then value X would get more points than value Y.
+
+## Values: US in practice
+
+We want you to think of the values that the United States stands for in practice.\
+\
+Regardless of what is written in the constitution and across party lines, the U.S. administrations stand for certain values and do not stand for others.\
+\
+**IN PRACTICE, what do you believe are the values that the U.S. stands for? Please list FIVE values.**\
+\
+Each value should consist of 1-3 words. Try to be as clear and succinct as possible.\
+\
+*paste disabled\
+\
+*below are values mentioned, ordered by the number of mentions*
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_long_elg %>% 
   filter(type == "uspractice") %>% 
-  group_by(value) %>% 
+  group_by(value) %>%
   summarise(N = n()) %>% 
   ungroup() %>% 
   mutate(Perc = round(100*(N/sum(N)),2)) %>% 
   ungroup() %>% 
   arrange(desc(N)) %>% 
-  dplyr::select(N,Perc,value) %>% 
   kbl() %>% 
   kable_styling(bootstrap_options = "hover",
                 position = "left") %>% 
   scroll_box(width = "100%", height = "400px")
 ```
 
-## Cosine similarity: GloVe
+## Weights: US in practice
 
-After getting the values' semantic meaning in 100-dimension vectors, I took the weighted mean of each perspective per participant and took the cosine similarity between the two persepctives' vectors. This is the distribution:
+*participants were shown the values that they inputted in the previous question and were asked to assign them a forced sum of 100 points, based on its perceived importance to the US in practice.*\
+\
+The values you listed are shown below.\
+\
+Now, we ask you to indicate how important you think each value is to the U.S. in practice.\
+\
+To that end, you have a sum of 100 points. Please allocate those points to the values you listed based on how important you think they are to the U.S. IN PRACTICE.\
+\
+For example, if you think all five values are equally important, each of them would get 20 points. If you think value X is more important than value Y, then value X would get more points than value Y.
 
-```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
-df_bsc_elg %>%
-  ggplot() +
-  geom_density(aes(x = simi), fill = "lightblue") +
-  geom_vline(xintercept = mean(df_bsc_elg$simi,na.rm = T),
+## Computed Broken Social Contract Variable
+
+See *Computational analytical strategy* above. This is the distribution:
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = brokencontract_openai)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 0.01) +
+  scale_x_continuous(breaks = seq(0,1,0.1),
+                     limits = c(-0.01,1.01)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$brokencontract_openai,na.rm = T),
              color = "black",
              linetype = "dashed",
              size = 1.1) +
@@ -381,34 +531,14 @@ df_bsc_elg %>%
         axis.line = element_line(color = "grey66"),
         axis.text.y = element_text(color = "black"),
         axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
                                    face = "bold"))
-
 ```
 
-## Cosine similarity: OpenAI
+# Political Discontent Measures
 
-I also got word embeddings through the OpenAI API. There, I used the [text-embedding-3-large] model that gives 3072 dimensions per term. It's much more exhaustive and much more precise. Then, I did the same procesure for the weighted cosine similarities.
-
-```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
-df_bsc_elg %>%
-  ggplot() +
-  geom_density(aes(x = simi_openai), fill = "lightblue") +
-  geom_vline(xintercept = mean(df_bsc_elg$simi_openai,na.rm = T),
-             color = "black",
-             linetype = "dashed",
-             size = 1.1) +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        axis.ticks = element_blank(),
-        axis.line = element_line(color = "grey66"),
-        axis.text.y = element_text(color = "black"),
-        axis.text.x = element_text(color = "black",
-                                   face = "bold"))
-
-```
-
-## Anti-Establishment
+## Anti-establishment sentiment
 
 ```{r,include=F}
 alpha_table <- df_bsc_elg %>% 
@@ -426,13 +556,13 @@ alpha <- alpha_table$total[1]
 3. Experts in this country don’t understand the lives of people like me\
 4. Most of the time we can trust people in the government to do what is right [R]
 \
-alpha = `r round(alpha,2)`
+Cronbach's alpha = `r round(alpha,2)`
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
   ggplot(aes(x = antiest)) +
   geom_density(fill = "lightblue",
-                 color = "black") +
+                 color = NA) +
   scale_x_continuous(breaks = seq(1,7,1),
                      limits = c(1,7)) +
   ylab("density") +
@@ -452,7 +582,38 @@ df_bsc_elg %>%
                                    face = "bold"))
 ```
 
-## Trust in democratic institutions
+## Support for radical change
+
+To what extent do you agree with the following statement?\
+\
+*The way this country works needs to be radically changed*
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = change)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$change,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Trust in democratic political instituions
+
 
 ```{r,include=F}
 alpha_table <- df_bsc_elg %>% 
@@ -468,13 +629,13 @@ Please indicate how much you trust or distrust the following institutions (1 = S
 2. The US Government / Executive Branch\
 3. The US Courts / Judicial Branch\
 \
-alpha = `r round(alpha,2)`
+Cronbach's alpha = `r round(alpha,2)`
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
   ggplot(aes(x = trust_deminst)) +
   geom_density(fill = "lightblue",
-                 color = "black") +
+               color = NA) +
   scale_x_continuous(breaks = seq(1,7,1),
                      limits = c(1,7)) +
   ylab("density") +
@@ -494,7 +655,7 @@ df_bsc_elg %>%
                                    face = "bold"))
 ```
 
-## Trust in national mainstream institutions
+## Trust in non-political mainstream institutions
 
 ```{r,include=F}
 alpha_table <- df_bsc_elg %>% 
@@ -518,13 +679,13 @@ Please indicate how much you trust or distrust the following institutions (1 = S
 5. Financial institutions in the US (e.g., Wall Street, The Fed, The Big Banks)\
 6. The medical system in the US\
 \
-alpha = `r round(alpha,2)`
+Cronbach's alpha = `r round(alpha,2)`
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
   ggplot(aes(x = trust_natinst)) +
   geom_density(fill = "lightblue",
-                 color = "black") +
+                 color = NA) +
   scale_x_continuous(breaks = seq(1,7,1),
                      limits = c(1,7)) +
   ylab("density") +
@@ -562,13 +723,13 @@ Please indicate how much you agree or disagree with the following statements (1 
 2. Scientific institutions generate objective knowledge\
 3. I look to the social sciences for answers to social problems\
 \
-alpha = `r round(alpha,2)`
+Cronbach's alpha = `r round(alpha,2)`
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
   ggplot(aes(x = trust_science)) +
   geom_density(fill = "lightblue",
-                 color = "black") +
+                 color = NA) +
   scale_x_continuous(breaks = seq(1,7,1),
                      limits = c(1,7)) +
   ylab("density") +
@@ -588,21 +749,20 @@ df_bsc_elg %>%
                                    face = "bold"))
 ```
 
-## Support for radical change
+## Turnout for Presidential Election
 
-To what extent do you agree with the following statement?\
-\
-*The way this country works needs to be radically changed*
+What is the likelihood that you will vote in the 2024 Presidential Elections?
+1 = *Not at All Likely* to 5 = *Extremely Likely*
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
-  ggplot(aes(x = change)) +
-  geom_density(fill = "lightblue",
-                 color = "black") +
-  scale_x_continuous(breaks = seq(1,7,1),
-                     limits = c(1,7)) +
-  ylab("density") +
-  geom_vline(xintercept = mean(df_bsc_elg$change,na.rm = T),
+  ggplot(aes(x = vote_likely)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,5,1),
+                     limits = c(0,6)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$vote_likely,na.rm = T),
              color = "black",
              linetype = "dashed",
              size = 1.1) +
@@ -618,7 +778,9 @@ df_bsc_elg %>%
                                    face = "bold"))
 ```
 
-## SDO
+# Control variables
+
+## Social Dominance Orientation
 
 ```{r,include=F}
 alpha_table <- df_bsc_elg %>% 
@@ -637,13 +799,13 @@ alpha <- alpha_table$total[1]
 7. We should do what we can to equalize conditions for different groups [R]\
 8. We should work to give all groups an equal chance to succeed [R]\
 \
-alpha = `r round(alpha,2)`
+Cronbach's alpha = `r round(alpha,2)`
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
 df_bsc_elg %>% 
   ggplot(aes(x = SDO)) +
   geom_density(fill = "lightblue",
-                 color = "black") +
+                 color = NA) +
   scale_x_continuous(breaks = seq(1,7,1),
                      limits = c(1,7)) +
   ylab("density") +
@@ -663,7 +825,7 @@ df_bsc_elg %>%
                                    face = "bold"))
 ```
 
-## TIPI
+## Ten-Iten Personality Inventory
 
 I see myself as... (1 = *Strongly Disagree* to 7 = *Strongly Agree*)
 
@@ -720,35 +882,6 @@ df_bsc_elg %>%
                                    face = "bold")) +
   facet_wrap(~trait,nrow = 2)
 
-```
-
-## Voting intentions
-
-What is the likelihood that you will vote in the 2024 Presidential Elections?
-
-```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
-df_bsc_elg %>% 
-  ggplot(aes(x = vote_likely)) +
-  geom_histogram(fill = "lightblue",
-                 color = "black",
-                 binwidth = 1) +
-  scale_x_continuous(breaks = seq(1,5,1),
-                     limits = c(0,6)) +
-  ylab("density") +
-  geom_vline(xintercept = mean(df_bsc_elg$vote_likely,na.rm = T),
-             color = "grey15",
-             size = 1,
-             linetype = "dashed") +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        axis.ticks = element_blank(),
-        axis.line = element_line(color = "grey66"),
-        axis.text.y = element_text(color = "black"),
-        axis.text.x = element_text(color = "black",
-                                   face = "bold"),
-        axis.title.x = element_text(color = "black",
-                                   face = "bold"))
 ```
 
 # Analysis

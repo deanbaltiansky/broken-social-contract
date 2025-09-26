@@ -98,7 +98,8 @@ df_bsc <- df_bsc %>%
          race_num_8 = ifelse(race_8 != "",1,0),
          race_num = race_num_1 + race_num_3 + race_num_4 + race_num_5 + race_num_6 + race_num_7 + race_num_8,
          race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_3,race_4,race_5,race_6,race_7,race_8)),
-         race = ifelse(race == "",NA,race))
+         race = ifelse(race == "",NA,race),
+         white = ifelse(race == "White",1,0))
 ```
 
 gender
@@ -199,14 +200,20 @@ df_bsc <- df_bsc %>%
   left_join(county_data,by = c("state","county"))
 ```
 
-dummy-code voting intentions
+dummy-code voting intentions and binarize party id
 
 ```{r}
 df_bsc <- df_bsc %>% 
   mutate(vote_2024_trump = ifelse(vote_2024 == "Donald Trump",1,0),
          vote_2024_biden = ifelse(vote_2024 == "Joe Biden",1,0),
          vote_2024_rfkj = ifelse(vote_2024 == "Robert F. Kennedy Jr.",1,0),
-         vote_2024_other = ifelse(vote_2024 == "Other",1,0))
+         vote_2024_other = ifelse(vote_2024 == "Other",1,0),
+         republican = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Republican",1,0)),
+         democrat = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Democrat",1,0)),
+         independent = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Independent",1,0)))
 ```
 
 attach openai similarities (see separate script "bsc_openaiwordembeddings.Rmd")
@@ -269,6 +276,7 @@ df_bsc <- df_bsc %>%
                 block_order,
                 ideo_con:ideo_prog,
                 party_id,
+                republican:independent,
                 vote_2020,
                 vote_2024,
                 vote_2024_trump:vote_2024_other,
@@ -277,6 +285,7 @@ df_bsc <- df_bsc %>%
                 edu,
                 edu_num,
                 race,
+                white,
                 hispanic,
                 age,
                 gender,
