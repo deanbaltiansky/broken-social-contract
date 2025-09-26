@@ -35,10 +35,14 @@ load_var_info <- function() {
 }
 
 ui <- tagList(
-  # Ensure the <title> tag wins
-  tags$head(tags$title("Correlations App")),
+  tags$head(
+    # works when running locally
+    tags$title("Correlations App"),
+    # force override in the exported (shinylive) HTML
+    tags$script(HTML('window.addEventListener("load", function(){ document.title = "Correlations App"; });'))
+  ),
   fluidPage(
-    title = "Correlations App",  # also set via fluidPage
+    title = "Correlations App",
     titlePanel("Broken Social Contract — Correlations"),
     sidebarLayout(
       sidebarPanel(
@@ -58,6 +62,7 @@ ui <- tagList(
     )
   )
 )
+
 
 server <- function(input, output, session) {
   df <- load_data()
