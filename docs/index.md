@@ -10,13 +10,17 @@ What are the consequences of a broken social contract? The current research posi
 ## Study 1
 
 <a href="./studies/study-1/index.html" target="_blank" rel="noopener"
-     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
-    FULL REPORT ↗
-  </a>\
+   style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;
+          text-decoration:none;display:inline-block;margin-bottom:12px;">
+  FULL REPORT ↗
+</a>
+
 <a href="./studies/study-1/app/index.html" target="_blank" rel="noopener"
-     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
-    EXPLORE CORRELATIONS ↗
-  </a>
+   style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;
+          text-decoration:none;display:inline-block;margin-bottom:12px;">
+  EXPLORE CORRELATIONS ↗
+</a>
+
 
 Conduct multiple linear regression models with variables measured in Study 1 here[LINK_HERE].
 
