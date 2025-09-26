@@ -1,11 +1,11 @@
 # scripts/export_apps.R
-# Export Shiny apps under each study-*:
+# Export Shiny apps and render docs/index.md -> docs/index.html (with .nojekyll kept)
 # - Legacy main app:        study-*/app                      -> docs/studies/<study>/app
 # - Sibling apps (flat):    study-*/X/app.R                  -> docs/studies/<study>/X
 # - Sibling apps (nested):  study-*/X/app/app.R              -> docs/studies/<study>/X
-# - SUB-APPS under app/:    study-*/app/Y[/app].R            -> docs/studies/<study>/Y
+# - Sub-apps under app/:    study-*/app/Y[/app].R            -> docs/studies/<study>/Y
 
-# install.packages("fs"); install.packages("shinylive")  # run once if needed
+# install.packages(c("fs","shinylive","rmarkdown"))  # run once if needed
 library(fs)
 library(shinylive)
 
@@ -27,7 +27,7 @@ if (length(study_dirs) == 0) {
   message("ℹ️  No study-* directories found. Nothing to export.")
 } else {
   dir_create("docs", recurse = TRUE, showWarnings = FALSE)
-  file.create(path("docs", ".nojekyll"))
+  file.create(path("docs", ".nojekyll"))  # keep this for ShinyLive safety
   
   for (study_dir in study_dirs) {
     study_name <- path_file(study_dir)
@@ -41,7 +41,6 @@ if (length(study_dirs) == 0) {
     # 2) Sibling apps at study-*/X and study-*/X/app
     if (dir_exists(study_dir)) {
       siblings <- dir_ls(study_dir, type = "directory", recurse = FALSE)
-      
       for (sib in siblings) {
         app_name <- path_file(sib)
         if (identical(app_name, "app")) next  # handled above
@@ -60,10 +59,9 @@ if (length(study_dirs) == 0) {
       }
     }
     
-    # 3) Sub-apps INSIDE legacy app/: study-*/app/Y and study-*/app/Y/app
+    # 3) Sub-apps inside legacy app/: study-*/app/Y and study-*/app/Y/app
     if (dir_exists(legacy_app)) {
       subapps <- dir_ls(legacy_app, type = "directory", recurse = FALSE)
-      
       for (sub in subapps) {
         sub_name <- path_file(sub)
         
@@ -82,5 +80,29 @@ if (length(study_dirs) == 0) {
     }
   }
   
-  message("✅ Done. Apps are under docs/studies/<study>/<app_folder>")
+  message("🧩 Export complete. Now rendering docs/index.md (if present)...")
+  
+  # ---- Render docs/index.md -> docs/index.html (keeps .nojekyll) ----
+  md_path <- path("docs", "index.md")
+  if (file_exists(md_path)) {
+    if (requireNamespace("rmarkdown", quietly = TRUE)) {
+      # Render in a clean environment to avoid side effects
+      rmarkdown::render(
+        input        = md_path,
+        output_format = "html_document",
+        output_file   = "index.html",
+        output_dir    = "docs",
+        envir         = new.env(parent = emptyenv()),
+        quiet         = TRUE
+      )
+      message("✅ Rendered docs/index.md -> docs/index.html")
+    } else {
+      message("⚠️  'rmarkdown' not installed; cannot render docs/index.md.")
+      message("    Install with: install.packages('rmarkdown')  (or remove .nojekyll to let Jekyll render .md)")
+    }
+  } else {
+    message("ℹ️  docs/index.md not found; skipping homepage render.")
+  }
+  
+  message("✅ Done. Apps are under docs/studies/<study>/<app_folder>; homepage served from docs/index.html")
 }
