@@ -9,8 +9,8 @@ What are the consequences of a broken social contract? The current research posi
 
 ## Study 1
 
-See full report of Study 1 here[LINK_HERE].\
-Explore correlations of variables measured in Study 1 here[LINK_HERE].\
+<a href="./studies/study-1/index.html" target="_blank" rel="noopener">FULL REPORT ↗</a>
+<a href="./studies/study-1/app/index.html" target="_blank" rel="noopener">EXPLORE CORRELATIONS ↗</a><br>
 Conduct multiple linear regression models with variables measured in Study 1 here[LINK_HERE].
 
 ### Purpose

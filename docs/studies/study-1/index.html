@@ -41833,7 +41833,11 @@ df_bsc_elg %&gt;%
 <h1>Analysis</h1>
 <div id="correlation-matrix" class="section level2">
 <h2>Correlation matrix</h2>
-<p>Explore further correlations here: [Shiny App].</p>
+<p><br />
+<a href="./app/index.html" target="_blank" rel="noopener" style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
+EXPLORE CORRELATIONS ↗ </a><br />
+<br />
+</p>
 <pre class="r"><code>df_bsc_elg %&gt;% 
   rename(brokencontract = brokencontract_openai) %&gt;% 
   dplyr::select(brokencontract,antiest,change,trust_deminst,trust_natinst,trust_science,vote_likely,

@@ -888,7 +888,12 @@ df_bsc_elg %>%
 
 ## Correlation matrix
 
-Explore further correlations here: [Shiny App].
+\
+<a href="./app/index.html" target="_blank" rel="noopener"
+     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
+    EXPLORE CORRELATIONS ↗
+  </a>\
+\
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
 df_bsc_elg %>% 
