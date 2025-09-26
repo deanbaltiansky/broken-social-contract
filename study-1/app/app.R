@@ -34,23 +34,27 @@ load_var_info <- function() {
   unique(vi[c("var","label","description")])
 }
 
-ui <- fluidPage(
+ui <- tagList(
+  # Ensure the <title> tag wins
   tags$head(tags$title("Correlations App")),
-  titlePanel("Broken Social Contract — Correlations"),
-  sidebarLayout(
-    sidebarPanel(
-      helpText("Pick two continuous variables to explore their linear relationship."),
-      selectInput("xvar", "X axis", choices = NULL),
-      selectInput("yvar", "Y axis", choices = NULL)
-    ),
-    mainPanel(
-      plotOutput("scatter", height = 420),
-      tags$hr(),
-      verbatimTextOutput("stats"),
-      tags$hr(),
-      tags$h4("Variable descriptions"),
-      uiOutput("xdesc"),
-      uiOutput("ydesc")
+  fluidPage(
+    title = "Correlations App",  # also set via fluidPage
+    titlePanel("Broken Social Contract — Correlations"),
+    sidebarLayout(
+      sidebarPanel(
+        helpText("Pick two continuous variables to explore their linear relationship."),
+        selectInput("xvar", "X axis", choices = NULL),
+        selectInput("yvar", "Y axis", choices = NULL)
+      ),
+      mainPanel(
+        plotOutput("scatter", height = 420),
+        tags$hr(),
+        verbatimTextOutput("stats"),
+        tags$hr(),
+        tags$h4("Variable descriptions"),
+        uiOutput("xdesc"),
+        uiOutput("ydesc")
+      )
     )
   )
 )
