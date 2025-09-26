@@ -80,7 +80,8 @@ ethnicity
 
 ```{r}
 df_bsc <- df_bsc %>% 
-  mutate(hispanic = ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0))
+  mutate(hispanic = ifelse(is.na(race_2),0,
+                           ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0)))
 ```
 
 fix race
