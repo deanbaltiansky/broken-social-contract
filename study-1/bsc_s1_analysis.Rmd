@@ -886,7 +886,7 @@ df_bsc_elg %>%
 
 # Analysis
 
-## Correlation matrix
+## Correlations
 
 \
 <a href="./app/index.html" target="_blank" rel="noopener"
@@ -905,3 +905,362 @@ df_bsc_elg %>%
 
 ```
 
+## Linear models
+
+Here, I report the preregistered analyses. Feel free to explore different linear models here:\
+\
+<a href="./lm-table-app/index.html" target="_blank" rel="noopener"
+     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
+    EXPLORE MODELS ↗
+  </a>
+
+
+### DV: Antiestablishment Sentiment
+
+#### Model 1\
+\
+**Outcome:** Antiestablishment sentiment\
+**Predictor:** Broken social contract\
+**Controls:** conservatism
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 2\
+\
+**Outcome:** Antiestablishment sentiment\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 3\
+\
+**Outcome:** Antiestablishment sentiment\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 4\
+\
+**Outcome:** Antiestablishment sentiment\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### DV: Support for radical change
+
+#### Model 1\
+\
+**Outcome:** Support for radical change\
+**Predictor:** Broken social contract\
+**Controls:** conservatism
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 2\
+\
+**Outcome:** Support for radical change\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 3\
+\
+**Outcome:** Support for radical change\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 4\
+\
+**Outcome:** Support for radical change\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### DV: Trust in democratic political institutions
+
+#### Model 1\
+\
+**Outcome:** Trust in democratic political institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 2\
+\
+**Outcome:** Trust in democratic political institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 3\
+\
+**Outcome:** Trust in democratic political institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 4\
+\
+**Outcome:** Trust in democratic political institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### DV: Trust in non-political mainstream institutions
+
+#### Model 1\
+\
+**Outcome:** Trust in non-political mainstream institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 2\
+\
+**Outcome:** Trust in non-political mainstream institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 3\
+\
+**Outcome:** Trust in non-political mainstream institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 4\
+\
+**Outcome:** Trust in non-political mainstream institutions\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### DV: Turnout for Presidential Election
+
+#### Model 1\
+\
+**Outcome:** Turnout for Presidential Election\
+**Predictor:** Broken social contract\
+**Controls:** conservatism
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 2\
+\
+**Outcome:** Turnout for Presidential Election\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 3\
+\
+**Outcome:** Turnout for Presidential Election\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+#### Model 4\
+\
+**Outcome:** Turnout for Presidential Election\
+**Predictor:** Broken social contract\
+**Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+ 
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```

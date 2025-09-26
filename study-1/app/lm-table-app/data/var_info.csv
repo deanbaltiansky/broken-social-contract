@@ -1,0 +1,34 @@
+var,label,description
+brokencontract_openai,Broken Social Contract,Subjective mismatch between the U.S.'s values on paper and the U.S.'s values in practice
+antiest,Antiestablishment Sentiment,Mean score of four items meauring anti-establishment sentiment
+trust_deminst,Trust in democratic political institutions,"Trust in Congress, The Government, and the courts (1 = strongly distrust to 7 = strongly trust)"
+trust_natinst,Trust in non-political mainstream institutions,"Trust in mainstream media, the education system, law enforcement, the military, financial institutions, the medical system (1 = strongly distrust to 7 = strongly trust)"
+trust_science,Trust in science,Mean score of three items measuring trust in science
+vote_likely,Voting turnout intention,Likelihood of voting in the 2024 Presidential Election (1 = not at all likely to 5 = extremely likely)
+change,Support for radical change,Extent if agreement with: the way this country works needs to be radically changed
+SDO,Social dominance orientation,Mean score of eight items measuring social dominance orientation (endorsement of social hierarchy in society)
+TIPI_extra,Extroversion,Personality: Extroversion
+TIPI_agree,Agreeableness,Personality: Agreeableness
+TIPI_consc,Conscientiousness,Personality: Conscientiousness
+TIPI_neuro,Neuroticism,Personality: Neuroticism
+TIPI_open,Openness,Personality: Openness
+ideo_con,Ideology: Conservative,Endorsement of conservative ideology
+ideo_lib,Ideology: Liberal,Endorsement of liberal ideology
+ideo_demsoc,Ideology: Democratic Socialist,Endorsement of democratic socialist ideology
+ideo_lbrtn,Ideology: Libertarian,Endorsement of libertarian ideology
+ideo_prog,Ideology: Progressive,Endorsement of progressive ideology
+republican,Party: Republican,Republican = 1; Not Republican = 0
+democrat,Party: Democrat,Democrat = 1; Not Democrat = 0
+independent,Party: Independent,Independent = 1; Not Independent = 0
+vote_2024_trump,Vote 2024: Trump,Intent to vote for Trump = 1; not Trump = 0
+vote_2024_biden,Vote 2024: Biden,Intent to vote for Biden = 1; not Biden = 0
+vote_2024_rfkj,Vote 2024: RFK Jr.,Intent to vote for RFK Jr. = 1; not RFK Jr. = 0
+vote_2024_other,Vote 2024: Other,Intent to vote for Other = 1; not Other  = 0
+man,Gender,Man = 1; Non-man = 0
+white,Race,White = 1; Non-white = 0
+age,Age,Age
+income_num,Income,Income: numeric
+edu_num,Education,Education: numeric
+county_gini,County inequality,US Census measure of county inequality (GINI coefficient)
+county_density,County density,US Census measure of county density
+county_medianincome,County median income,US Census measure of county median income
