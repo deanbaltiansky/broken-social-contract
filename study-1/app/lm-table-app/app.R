@@ -1,7 +1,10 @@
-# study-1/lm-table-app/app.R
+# study-1/app/lm-table-app/app.R
 library(shiny)
 
-# ---- Data loaders (local files: shinylive-safe) ----
+# small null-coalescing helper (no extra deps)
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+# ---- Data loaders (shinylive-safe local files) ----
 load_data <- function() {
   p <- "data/df_bsc_elg.csv"
   if (!file.exists(p)) stop("Missing data/df_bsc_elg.csv in study-1/app/lm-table-app/data/")
@@ -27,7 +30,6 @@ is_numlike <- function(x) {
   mean(ok, na.rm = TRUE) > 0.9
 }
 coerce_for_lm <- function(df) {
-  # Numeric-like -> numeric; everything else -> factor (safe for lm)
   for (nm in names(df)) {
     if (is_numlike(df[[nm]])) {
       df[[nm]] <- suppressWarnings(as.numeric(df[[nm]]))
@@ -51,6 +53,9 @@ ui <- fluidPage(
         "controls", "Controls (0+)", choices = NULL, multiple = TRUE,
         options = list(
           plugins = list("remove_button"),
+          persist = TRUE,
+          openOnFocus = TRUE,
+          closeAfterSelect = FALSE,
           placeholder = "Add any variables"
         )
       ),
@@ -75,14 +80,18 @@ server <- function(input, output, session) {
   df0 <- load_data(); names(df0) <- trimws(names(df0))
   var_info <- load_var_info()
   
-  # ---- NEW: restrict to vars that are BOTH in var_info$var AND in the data ----
+  # Restrict to vars that are BOTH listed in var_info and present in data
   listed <- unique(trimws(var_info$var))
   available_all <- intersect(names(df0), listed)
-  validate(need(length(available_all) >= 2, "Need at least two variables that are listed in var_info.csv and present in the dataset."))
+  validate(need(length(available_all) >= 2,
+                "Need at least two variables that are listed in var_info.csv and present in the dataset."))
   
-  # Label list (labels come only from var_info)
-  labs <- var_info$label[match(available_all, var_info$var)]
-  labs[is.na(labs) | !nzchar(labs)] <- available_all
+  # Labels (from var_info where available)
+  lab_of <- function(v) {
+    lb <- var_info$label[match(v, var_info$var)]
+    ifelse(is.na(lb) | !nzchar(lb), v, lb)
+  }
+  labs <- lab_of(available_all)
   choices_all <- as.list(available_all); names(choices_all) <- labs
   
   # Initialize selects (Predictor first, Outcome second)
@@ -90,32 +99,46 @@ server <- function(input, output, session) {
   updateSelectInput(session, "yvar", choices = choices_all, selected = available_all[min(2, length(available_all))])
   updateSelectInput(session, "zvar", choices = c("None" = "", choices_all), selected = "")
   
-  # Controls from the same restricted set (excluding current Y/X/Z dynamically)
+  # --- FIX: prevent controls flicker by updating only when choices actually change ---
+  prev_ctrl_pool <- reactiveVal(character(0))
+  
   observe({
+    # Exclude currently chosen Y/X/Z (drop empty moderator)
     cur_exclude <- unique(c(input$yvar, input$xvar, input$zvar))
     cur_exclude <- cur_exclude[nzchar(cur_exclude)]
     ctrl_pool <- setdiff(available_all, cur_exclude)
-    lab_ctrl <- var_info$label[match(ctrl_pool, var_info$var)]
-    lab_ctrl[is.na(lab_ctrl) | !nzchar(lab_ctrl)] <- ctrl_pool
+    
+    # If choices haven't changed, do nothing (prevents rapid re-render/clearing)
+    if (identical(ctrl_pool, prev_ctrl_pool())) return(NULL)
+    
+    # Build labeled choices
+    lab_ctrl <- lab_of(ctrl_pool)
     ctrl_choices <- as.list(ctrl_pool); names(ctrl_choices) <- lab_ctrl
-    keep <- intersect(input$controls %||% character(0), ctrl_pool)
-    updateSelectizeInput(session, "controls", choices = ctrl_choices, selected = keep, server = TRUE)
+    
+    # Preserve selected controls that are still valid
+    keep <- intersect(isolate(input$controls) %||% character(0), ctrl_pool)
+    
+    # Freeze to avoid reacting to our own update
+    freezeReactiveValue(input, "controls")
+    updateSelectizeInput(
+      session, "controls",
+      choices = ctrl_choices,
+      selected = keep,
+      server = TRUE
+    )
+    
+    prev_ctrl_pool(ctrl_pool)
   })
   
-  # Pretty label lookup (supports interactions like "a:b" => "Label(a) × Label(b)")
+  # Term label (supports interactions like a:b => Label(a) × Label(b))
   term_label <- function(term) {
     if (term == "(Intercept)") return("Intercept")
     parts <- strsplit(term, ":", fixed = TRUE)[[1]]
-    labs <- var_info$label[match(parts, var_info$var)]
-    labs[is.na(labs) | !nzchar(labs)] <- parts
-    if (length(parts) > 1) paste(labs, collapse = " × ") else labs
+    lbls  <- lab_of(parts)
+    if (length(parts) > 1) paste(lbls, collapse = " × ") else lbls
   }
   
-  # Label & description helpers for selected variables
-  get_label <- function(v) {
-    lb <- var_info$label[match(v, var_info$var)]
-    ifelse(is.na(lb) | !nzchar(lb), v, lb)
-  }
+  # Description helper
   get_desc <- function(v) {
     ds <- var_info$description[match(v, var_info$var)]
     ifelse(is.na(ds) | !nzchar(ds), "", ds)
@@ -175,11 +198,11 @@ server <- function(input, output, session) {
   output$var_info_table <- renderTable({
     x <- input$xvar; y <- input$yvar; z <- input$zvar
     rows <- list(
-      c(role = "Predictor (X)", var = x, label = get_label(x), description = get_desc(x)),
-      c(role = "Outcome (Y)",   var = y, label = get_label(y), description = get_desc(y))
+      c(role = "Predictor (X)", var = x, label = lab_of(x), description = get_desc(x)),
+      c(role = "Outcome (Y)",   var = y, label = lab_of(y), description = get_desc(y))
     )
     if (nzchar(z)) {
-      rows <- c(rows, list(c(role = "Moderator (Z)", var = z, label = get_label(z), description = get_desc(z))))
+      rows <- c(rows, list(c(role = "Moderator (Z)", var = z, label = lab_of(z), description = get_desc(z))))
     }
     as.data.frame(do.call(rbind, rows), stringsAsFactors = FALSE)
   }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s")
