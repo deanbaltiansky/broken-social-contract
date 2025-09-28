@@ -1,6 +1,9 @@
 
 ---
 title: "Broken Social Contract"
+output:
+  html_document:
+    self_contained: true
 ---
 
 # Political Discontent is Driven by A Broken Social Contract
@@ -15,20 +18,26 @@ What are the consequences of a broken social contract? The current research posi
 
 <div style="display:flex; flex-direction:column; gap:12px; align-items:flex-start;">
 
-<a href="./studies/study-1/index.html" target="_blank" rel="noopener"
-   style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
-  FULL REPORT ↗
-</a>
+  <div>
+    <a href="./studies/study-1/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      FULL REPORT ↗
+    </a>
+  </div>
 
-<a href="./studies/study-1/app/index.html" target="_blank" rel="noopener"
-   style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
-  EXPLORE CORRELATIONS ↗
-</a>
+  <div>
+    <a href="./studies/study-1/app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      EXPLORE CORRELATIONS ↗
+    </a>
+  </div>
 
-<a href="./studies/study-1/lm-table-app/index.html" target="_blank" rel="noopener"
-   style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
-  EXPLORE OLS MODELS ↗
-</a>
+  <div>
+    <a href="./studies/study-1/lm-table-app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      EXPLORE OLS MODELS ↗
+    </a>
+  </div>
 
 </div>
 
