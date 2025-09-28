@@ -186,11 +186,24 @@ server <- function(input, output, session) {
     )
   }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "m")
   
-  # ----- Visualization (base R, no ggplot2) -----
+  # ----- Visualization (base R) -----
   output$viz <- renderPlot({
     fit <- lm_fit()
     d_fit <- model.frame(fit)  # data after na.omit
     x <- input$xvar; y <- input$yvar; z <- input$zvar
+    
+    # Styling
+    lwd_line <- 2.6                    # a bit thicker
+    col_blue <- "blue"
+    col_red  <- "red"
+    col_green<- "green"
+    pt_col   <- rgb(0, 0, 0, 0.12)     # more transparent scatter
+    
+    # Leave room for a legend underneath the plot
+    op <- par(no.readonly = TRUE)
+    on.exit(par(op), add = TRUE)
+    par(xpd = NA)                       # allow drawing outside plot region
+    par(mar = par("mar") + c(2,0,0,0))  # extra bottom margin
     
     # typical values for controls (mean for numeric, mode for factor/character)
     typical_val <- function(v) {
@@ -222,27 +235,23 @@ server <- function(input, output, session) {
     if (!is.numeric(xv)) {
       x_fac <- factor(xv)
       x_num <- as.numeric(x_fac)
-      plot(jitter(x_num, 0.2), yv, pch = 16, col = rgb(0,0,0,0.25),
+      plot(jitter(x_num, 0.2), yv, pch = 16, col = pt_col,
            xaxt = "n", xlab = lab_of(x), ylab = lab_of(y), main = "Mean outcome by X (X is non-numeric)")
       axis(1, at = seq_along(levels(x_fac)), labels = levels(x_fac))
       pts_mean <- tapply(yv, x_fac, mean, na.rm = TRUE)
-      points(seq_along(pts_mean), pts_mean, pch = 19, cex = 1.2)
+      points(seq_along(pts_mean), pts_mean, pch = 19, cex = 1.2, col = col_blue)
       return(invisible(NULL))
     }
     
-    # numeric X: build prediction grid with N rows (fixes the earlier length mismatch)
+    # numeric X: build prediction grid
     x_seq <- seq(min(xv, na.rm = TRUE), max(xv, na.rm = TRUE), length.out = 100)
     N <- length(x_seq)
     
-    # Construct a "typical" row and then replicate to N rows
-    nd_row <- lapply(names(d_fit), typical_val)
-    names(nd_row) <- names(d_fit)
+    # Construct "typical" row, replicate to N rows, then set X
+    nd_row <- lapply(names(d_fit), typical_val); names(nd_row) <- names(d_fit)
     nd <- as.data.frame(nd_row, stringsAsFactors = FALSE)
     nd <- nd[rep(1, N), , drop = FALSE]
-    # ensure each column has length N and retains factor classes
-    for (nm in names(d_fit)) {
-      nd[[nm]] <- rep_n(nd[[nm]][1], N)
-    }
+    for (nm in names(d_fit)) nd[[nm]] <- rep_n(nd[[nm]][1], N)
     nd[[x]] <- x_seq
     
     # Determine moderator handling
@@ -254,7 +263,7 @@ server <- function(input, output, session) {
                                        "white","man"))
     
     # Scatter background
-    plot(xv, yv, pch = 16, col = rgb(0,0,0,0.25),
+    plot(xv, yv, pch = 16, col = pt_col,
          xlab = lab_of(x), ylab = lab_of(y),
          main = if (use_z && z_is_numeric) {
            paste0("Simple slopes at ", lab_of(z), " = {−1 SD, mean, +1 SD}")
@@ -264,62 +273,60 @@ server <- function(input, output, session) {
            "Model-implied trend"
          })
     
+    # Draw lines + legend per spec
     if (use_z && z_is_binary) {
-      # two lines: Z=0 and Z=1 (or first/second level if factor not labeled 0/1)
+      # Two lines: Z=0 (red), Z=1 (green)
       is_factor_z <- is.factor(z_in_fit)
       levs <- if (is_factor_z) levels(z_in_fit) else NULL
       leg <- character(2)
+      leg_cols <- c(col_red, col_green)
       
       for (i in 1:2) {
         nd_i <- nd
         if (is_factor_z) {
-          # prefer "0"/"1" if present; otherwise use first/second level
-          if (all(c("0","1") %in% levs)) {
-            val <- c("0","1")[i]
-          } else {
-            val <- levs[i]
-          }
+          # prefer "0"/"1" if present; otherwise first/second level
+          val <- if (all(c("0","1") %in% levs)) c("0","1")[i] else levs[i]
           nd_i[[z]] <- factor(rep(val, N), levels = levs)
-          leg[i] <- val
+          leg[i] <- paste(lab_of(z), "=", val)
         } else {
-          nd_i[[z]] <- rep(i-1, N)  # 0 then 1
-          leg[i] <- as.character(i-1)
+          val <- i - 1
+          nd_i[[z]] <- rep(val, N)
+          leg[i] <- paste(lab_of(z), "=", val)
         }
         yhat <- as.numeric(predict(fit, newdata = nd_i))
-        lines(x_seq, yhat, lwd = 2)
+        lines(x_seq, yhat, lwd = lwd_line, col = leg_cols[i])
       }
-      legend("topleft", legend = paste(lab_of(z), "=", leg), lty = 1, lwd = 2, bty = "n")
+      legend("bottom", inset = -0.18, xpd = NA, horiz = TRUE,
+             legend = leg, lty = 1, lwd = lwd_line, col = leg_cols, bty = "n")
+      
       output$mod_note <- renderUI(HTML("&nbsp;"))
       
     } else if (use_z && z_is_numeric) {
+      # Three lines: -1SD (red), Mean (blue), +1SD (green)
       z_mean <- mean(z_in_fit, na.rm = TRUE)
       z_sd   <- sd(z_in_fit, na.rm = TRUE)
       z_vals <- c(z_mean - z_sd, z_mean, z_mean + z_sd)
-      leg    <- c("-1 SD", "Mean", "+1 SD")
+      leg    <- c(paste(lab_of(z), "= -1 SD"),
+                  paste(lab_of(z), "= Mean"),
+                  paste(lab_of(z), "= +1 SD"))
+      leg_cols <- c(col_red, col_blue, col_green)
       
       for (i in 1:3) {
         nd_i <- nd
         nd_i[[z]] <- rep(z_vals[i], N)
         yhat <- as.numeric(predict(fit, newdata = nd_i))
-        lines(x_seq, yhat, lwd = 2)
+        lines(x_seq, yhat, lwd = lwd_line, col = leg_cols[i])
       }
-      legend("topleft", legend = paste(lab_of(z), ":", leg), lty = 1, lwd = 2, bty = "n")
+      legend("bottom", inset = -0.18, xpd = NA, horiz = TRUE,
+             legend = leg, lty = 1, lwd = lwd_line, col = leg_cols, bty = "n")
+      
       output$mod_note <- renderUI(HTML("&nbsp;"))
       
     } else {
-      # No moderator or non-numeric moderator: single line
+      # Single line: blue
       yhat <- as.numeric(predict(fit, newdata = nd))
-      lines(x_seq, yhat, lwd = 2)
-      if (use_z && !z_is_numeric) {
-        output$mod_note <- renderUI({
-          tags$p(style="color:#666;",
-                 paste("Moderator", shQuote(lab_of(z)),
-                       "is non-numeric; showing a single trend line at its typical value.")
-          )
-        })
-      } else {
-        output$mod_note <- renderUI(HTML("&nbsp;"))
-      }
+      lines(x_seq, yhat, lwd = lwd_line, col = col_blue)
+      output$mod_note <- renderUI(HTML("&nbsp;"))
     }
   })
   
