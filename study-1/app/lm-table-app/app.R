@@ -4,7 +4,7 @@ library(shiny)
 # ---- Data loaders (local files: shinylive-safe) ----
 load_data <- function() {
   p <- "data/df_bsc_elg.csv"
-  if (!file.exists(p)) stop("Missing data/df_bsc_elg.csv in study-1/lm-table-app/data/")
+  if (!file.exists(p)) stop("Missing data/df_bsc_elg.csv in study-1/app/lm-table-app/data/")
   read.csv(p, check.names = FALSE, stringsAsFactors = FALSE)
 }
 load_var_info <- function() {
@@ -65,7 +65,7 @@ ui <- fluidPage(
       tableOutput("var_info_table"),
       tags$hr(),
       tags$h4("Notes"),
-      tags$p("• Labels/descriptions are used only for variables present in var_info.csv; others show raw names."),
+      tags$p("• Only variables listed in var_info.csv (and present in the data) are available."),
       tags$p("• If a moderator is chosen, the model includes main effects and the interaction (X × Z).")
     )
   )
@@ -75,29 +75,31 @@ server <- function(input, output, session) {
   df0 <- load_data(); names(df0) <- trimws(names(df0))
   var_info <- load_var_info()
   
-  # Use ALL variables in the dataset for choices
-  available_all <- names(df0)
-  validate(need(length(available_all) >= 2, "Need at least two variables in the dataset."))
+  # ---- NEW: restrict to vars that are BOTH in var_info$var AND in the data ----
+  listed <- unique(trimws(var_info$var))
+  available_all <- intersect(names(df0), listed)
+  validate(need(length(available_all) >= 2, "Need at least two variables that are listed in var_info.csv and present in the dataset."))
   
-  # Label list using var_info where available; fall back to var name
+  # Label list (labels come only from var_info)
   labs <- var_info$label[match(available_all, var_info$var)]
   labs[is.na(labs) | !nzchar(labs)] <- available_all
   choices_all <- as.list(available_all); names(choices_all) <- labs
   
   # Initialize selects (Predictor first, Outcome second)
   updateSelectInput(session, "xvar", choices = choices_all, selected = available_all[1])
-  updateSelectInput(session, "yvar", choices = choices_all,
-                    selected = available_all[min(2, length(available_all))])
+  updateSelectInput(session, "yvar", choices = choices_all, selected = available_all[min(2, length(available_all))])
   updateSelectInput(session, "zvar", choices = c("None" = "", choices_all), selected = "")
   
-  # Controls from the entire dataset (excluding current Y/X/Z dynamically)
+  # Controls from the same restricted set (excluding current Y/X/Z dynamically)
   observe({
     cur_exclude <- unique(c(input$yvar, input$xvar, input$zvar))
-    all_controls <- setdiff(names(df0), cur_exclude[cur_exclude != ""])
-    lab_ctrl <- var_info$label[match(all_controls, var_info$var)]
-    lab_ctrl[is.na(lab_ctrl) | !nzchar(lab_ctrl)] <- all_controls
-    ctrl_choices <- as.list(all_controls); names(ctrl_choices) <- lab_ctrl
-    updateSelectizeInput(session, "controls", choices = ctrl_choices, server = TRUE)
+    cur_exclude <- cur_exclude[nzchar(cur_exclude)]
+    ctrl_pool <- setdiff(available_all, cur_exclude)
+    lab_ctrl <- var_info$label[match(ctrl_pool, var_info$var)]
+    lab_ctrl[is.na(lab_ctrl) | !nzchar(lab_ctrl)] <- ctrl_pool
+    ctrl_choices <- as.list(ctrl_pool); names(ctrl_choices) <- lab_ctrl
+    keep <- intersect(input$controls %||% character(0), ctrl_pool)
+    updateSelectizeInput(session, "controls", choices = ctrl_choices, selected = keep, server = TRUE)
   })
   
   # Pretty label lookup (supports interactions like "a:b" => "Label(a) × Label(b)")
