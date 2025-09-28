@@ -1,5 +1,5 @@
 # scripts/export_apps.R
-# Export Shiny apps and render docs/index.md -> docs/index.html (with .nojekyll kept)
+# Export Shiny apps and (re)render docs/index.md -> docs/index.html
 # - Legacy main app:        study-*/app                      -> docs/studies/<study>/app
 # - Sibling apps (flat):    study-*/X/app.R                  -> docs/studies/<study>/X
 # - Sibling apps (nested):  study-*/X/app/app.R              -> docs/studies/<study>/X
@@ -21,13 +21,14 @@ export_one <- function(app_dir, out_dir) {
   shinylive::export(appdir = app_dir, destdir = out_dir)
 }
 
+# ---- Find and export all apps ----
 study_dirs <- dir_ls(".", type = "directory", glob = "study-*", recurse = FALSE)
 
 if (length(study_dirs) == 0) {
   message("ℹ️  No study-* directories found. Nothing to export.")
 } else {
   dir_create("docs", recurse = TRUE, showWarnings = FALSE)
-  file.create(path("docs", ".nojekyll"))  # keep this for ShinyLive safety
+  file.create(path("docs", ".nojekyll"))  # keep for ShinyLive
   
   for (study_dir in study_dirs) {
     study_name <- path_file(study_dir)
@@ -38,19 +39,17 @@ if (length(study_dirs) == 0) {
       export_one(legacy_app, path("docs", "studies", study_name, "app"))
     }
     
-    # 2) Sibling apps at study-*/X and study-*/X/app
+    # 2) Sibling apps: study-*/X and study-*/X/app
     if (dir_exists(study_dir)) {
       siblings <- dir_ls(study_dir, type = "directory", recurse = FALSE)
       for (sib in siblings) {
         app_name <- path_file(sib)
         if (identical(app_name, "app")) next  # handled above
         
-        # Flat: study-*/X/app.R
         if (is_shiny_app_dir(sib)) {
           export_one(sib, path("docs", "studies", study_name, app_name))
           next
         }
-        # Nested: study-*/X/app/app.R
         nested_sib <- path(sib, "app")
         if (dir_exists(nested_sib) && is_shiny_app_dir(nested_sib)) {
           export_one(nested_sib, path("docs", "studies", study_name, app_name))
@@ -64,13 +63,10 @@ if (length(study_dirs) == 0) {
       subapps <- dir_ls(legacy_app, type = "directory", recurse = FALSE)
       for (sub in subapps) {
         sub_name <- path_file(sub)
-        
-        # Flat sub-app: study-*/app/Y/app.R
         if (is_shiny_app_dir(sub)) {
           export_one(sub, path("docs", "studies", study_name, sub_name))
           next
         }
-        # Nested sub-app: study-*/app/Y/app/app.R
         nested_sub <- path(sub, "app")
         if (dir_exists(nested_sub) && is_shiny_app_dir(nested_sub)) {
           export_one(nested_sub, path("docs", "studies", study_name, sub_name))
@@ -80,29 +76,38 @@ if (length(study_dirs) == 0) {
     }
   }
   
-  message("🧩 Export complete. Now rendering docs/index.md (if present)...")
+  message("🧩 Export complete. Rendering homepage…")
   
-  # ---- Render docs/index.md -> docs/index.html (keeps .nojekyll) ----
+  # ---- Render docs/index.md -> docs/index.html (STRICT: fail on issues) ----
   md_path <- path("docs", "index.md")
   if (file_exists(md_path)) {
-    if (requireNamespace("rmarkdown", quietly = TRUE)) {
-      # Render in a clean environment to avoid side effects
-      rmarkdown::render(
-        input        = md_path,
-        output_format = "html_document",
-        output_file   = "index.html",
-        output_dir    = "docs",
-        envir         = new.env(parent = emptyenv()),
-        quiet         = TRUE
-      )
-      message("✅ Rendered docs/index.md -> docs/index.html")
-    } else {
-      message("⚠️  'rmarkdown' not installed; cannot render docs/index.md.")
-      message("    Install with: install.packages('rmarkdown')  (or remove .nojekyll to let Jekyll render .md)")
+    if (!requireNamespace("rmarkdown", quietly = TRUE)) {
+      stop("❌ rmarkdown is not installed. Install it with install.packages('rmarkdown') and re-run.")
     }
+    # Ensure we don't accidentally publish a stale index.html
+    out_file <- path("docs", "index.html")
+    tryCatch(
+      {
+        rmarkdown::render(
+          input         = md_path,
+          output_format = "html_document",
+          output_file   = "index.html",
+          output_dir    = "docs",
+          envir         = new.env(parent = emptyenv()),
+          quiet         = TRUE
+        )
+        if (!file_exists(out_file)) {
+          stop("Render reported success but docs/index.html was not created.")
+        }
+        message("✅ Rendered docs/index.md -> docs/index.html")
+      },
+      error = function(e) {
+        stop(paste0("❌ Failed to render docs/index.md: ", conditionMessage(e)))
+      }
+    )
   } else {
-    message("ℹ️  docs/index.md not found; skipping homepage render.")
+    message("ℹ️  docs/index.md not found; skipping homepage render (existing docs/index.html, if any, will be served).")
   }
   
-  message("✅ Done. Apps are under docs/studies/<study>/<app_folder>; homepage served from docs/index.html")
+  message("✅ Done. Apps are under docs/studies/<study>/<app_folder>, homepage at docs/index.html")
 }
