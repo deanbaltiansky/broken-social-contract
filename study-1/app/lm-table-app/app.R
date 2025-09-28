@@ -206,6 +206,15 @@ server <- function(input, output, session) {
       }
     }
     
+    # replicate a single value to length n, preserving factor levels
+    rep_n <- function(val, n) {
+      if (is.factor(val)) {
+        factor(rep(as.character(val), n), levels = levels(val))
+      } else {
+        rep(val, n)
+      }
+    }
+    
     xv <- d_fit[[x]]
     yv <- d_fit[[y]]
     
@@ -221,19 +230,28 @@ server <- function(input, output, session) {
       return(invisible(NULL))
     }
     
-    # numeric X: build prediction grid
+    # numeric X: build prediction grid with N rows (fixes the earlier length mismatch)
     x_seq <- seq(min(xv, na.rm = TRUE), max(xv, na.rm = TRUE), length.out = 100)
+    N <- length(x_seq)
     
-    # Base newdata frame with typical values for vars used in the fit
-    nd_base <- setNames(vector("list", length = length(names(d_fit))), names(d_fit))
-    for (nm in names(d_fit)) nd_base[[nm]] <- typical_val(nm)
-    nd_base <- as.data.frame(nd_base, stringsAsFactors = FALSE)
-    nd_base[[x]] <- x_seq
+    # Construct a "typical" row and then replicate to N rows
+    nd_row <- lapply(names(d_fit), typical_val)
+    names(nd_row) <- names(d_fit)
+    nd <- as.data.frame(nd_row, stringsAsFactors = FALSE)
+    nd <- nd[rep(1, N), , drop = FALSE]
+    # ensure each column has length N and retains factor classes
+    for (nm in names(d_fit)) {
+      nd[[nm]] <- rep_n(nd[[nm]][1], N)
+    }
+    nd[[x]] <- x_seq
     
     # Determine moderator handling
     use_z <- nzchar(z)
-    z_is_numeric <- use_z && is.numeric(d_fit[[z]])
-    z_is_binary  <- use_z && (z %in% bin_vars)
+    z_in_fit <- if (use_z) d_fit[[z]] else NULL
+    z_is_numeric <- use_z && is.numeric(z_in_fit)
+    z_is_binary  <- use_z && (z %in% c("republican","democrat","independent",
+                                       "vote_2024_trump","vote_2024_biden","vote_2024_rfkj","vote_2024_other",
+                                       "white","man"))
     
     # Scatter background
     plot(xv, yv, pch = 16, col = rgb(0,0,0,0.25),
@@ -246,59 +264,62 @@ server <- function(input, output, session) {
            "Model-implied trend"
          })
     
-    # Colors (base palette; avoid specifying exact colors for ShinyLive bundle simplicity)
-    cols <- c("black", "gray40", "gray10")
-    
     if (use_z && z_is_binary) {
-      z_in_fit <- d_fit[[z]]
+      # two lines: Z=0 and Z=1 (or first/second level if factor not labeled 0/1)
       is_factor_z <- is.factor(z_in_fit)
-      leg <- character(0)
+      levs <- if (is_factor_z) levels(z_in_fit) else NULL
+      leg <- character(2)
       
-      # two lines: z=0 and z=1 (or first/second level if factor not labeled 0/1)
-      z_vals <- c(0, 1); z_labs <- c("0", "1")
       for (i in 1:2) {
-        nd <- nd_base
+        nd_i <- nd
         if (is_factor_z) {
-          levs <- levels(z_in_fit)
+          # prefer "0"/"1" if present; otherwise use first/second level
           if (all(c("0","1") %in% levs)) {
-            nd[[z]] <- factor(z_labs[i], levels = levs)
-            leg[i] <- z_labs[i]
+            val <- c("0","1")[i]
           } else {
-            nd[[z]] <- factor(levs[i], levels = levs)
-            leg[i] <- levs[i]
+            val <- levs[i]
           }
+          nd_i[[z]] <- factor(rep(val, N), levels = levs)
+          leg[i] <- val
         } else {
-          nd[[z]] <- z_vals[i]
-          leg[i] <- as.character(z_vals[i])
+          nd_i[[z]] <- rep(i-1, N)  # 0 then 1
+          leg[i] <- as.character(i-1)
         }
-        yhat <- as.numeric(predict(fit, newdata = nd))
+        yhat <- as.numeric(predict(fit, newdata = nd_i))
         lines(x_seq, yhat, lwd = 2)
       }
       legend("topleft", legend = paste(lab_of(z), "=", leg), lty = 1, lwd = 2, bty = "n")
-      
       output$mod_note <- renderUI(HTML("&nbsp;"))
       
     } else if (use_z && z_is_numeric) {
-      z_mean <- mean(d_fit[[z]], na.rm = TRUE)
-      z_sd   <- sd(d_fit[[z]], na.rm = TRUE)
+      z_mean <- mean(z_in_fit, na.rm = TRUE)
+      z_sd   <- sd(z_in_fit, na.rm = TRUE)
       z_vals <- c(z_mean - z_sd, z_mean, z_mean + z_sd)
       leg    <- c("-1 SD", "Mean", "+1 SD")
       
       for (i in 1:3) {
-        nd <- nd_base
-        nd[[z]] <- z_vals[i]
-        yhat <- as.numeric(predict(fit, newdata = nd))
+        nd_i <- nd
+        nd_i[[z]] <- rep(z_vals[i], N)
+        yhat <- as.numeric(predict(fit, newdata = nd_i))
         lines(x_seq, yhat, lwd = 2)
       }
       legend("topleft", legend = paste(lab_of(z), ":", leg), lty = 1, lwd = 2, bty = "n")
-      
       output$mod_note <- renderUI(HTML("&nbsp;"))
       
     } else {
-      nd <- nd_base
+      # No moderator or non-numeric moderator: single line
       yhat <- as.numeric(predict(fit, newdata = nd))
       lines(x_seq, yhat, lwd = 2)
-      output$mod_note <- renderUI(HTML("&nbsp;"))
+      if (use_z && !z_is_numeric) {
+        output$mod_note <- renderUI({
+          tags$p(style="color:#666;",
+                 paste("Moderator", shQuote(lab_of(z)),
+                       "is non-numeric; showing a single trend line at its typical value.")
+          )
+        })
+      } else {
+        output$mod_note <- renderUI(HTML("&nbsp;"))
+      }
     }
   })
   
