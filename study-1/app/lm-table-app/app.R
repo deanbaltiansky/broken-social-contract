@@ -1,7 +1,7 @@
 # study-1/app/lm-table-app/app.R
 library(shiny)
+library(ggplot2)
 
-# small null-coalescing helper (no extra deps)
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # ---- Data loaders (shinylive-safe local files) ----
@@ -65,13 +65,16 @@ ui <- fluidPage(
     ),
     mainPanel(
       tableOutput("lm_table"),
+      plotOutput("viz", height = 420),
       tags$hr(),
       tags$h4("Selected variable info"),
       tableOutput("var_info_table"),
       tags$hr(),
       tags$h4("Notes"),
       tags$p("• Only variables listed in var_info.csv (and present in the data) are available."),
-      tags$p("• If a moderator is chosen, the model includes main effects and the interaction (X × Z).")
+      tags$p("• If a moderator is chosen, the model includes main effects and the interaction (X × Z)."),
+      tags$p("• Data were collected in March 2024. Therefore, voting variables indicate voting intentions, rather than voting behavior."),
+      uiOutput("mod_note")
     )
   )
 )
@@ -86,62 +89,58 @@ server <- function(input, output, session) {
   validate(need(length(available_all) >= 2,
                 "Need at least two variables that are listed in var_info.csv and present in the dataset."))
   
-  # Labels (from var_info where available)
+  # Binary moderator whitelist
+  bin_vars <- c("republican","democrat","independent",
+                "vote_2024_trump","vote_2024_biden","vote_2024_rfkj","vote_2024_other",
+                "white","man")
+  
+  # Label helpers
   lab_of <- function(v) {
     lb <- var_info$label[match(v, var_info$var)]
     ifelse(is.na(lb) | !nzchar(lb), v, lb)
   }
+  get_desc <- function(v) {
+    ds <- var_info$description[match(v, var_info$var)]
+    ifelse(is.na(ds) | !nzchar(ds), "", ds)
+  }
+  
+  # Choices
   labs <- lab_of(available_all)
   choices_all <- as.list(available_all); names(choices_all) <- labs
   
-  # Initialize selects (Predictor first, Outcome second)
+  # Initialize selects
   updateSelectInput(session, "xvar", choices = choices_all, selected = available_all[1])
   updateSelectInput(session, "yvar", choices = choices_all, selected = available_all[min(2, length(available_all))])
   updateSelectInput(session, "zvar", choices = c("None" = "", choices_all), selected = "")
   
-  # --- FIX: prevent controls flicker by updating only when choices actually change ---
+  # Controls: prevent flicker by updating only when pool changes
   prev_ctrl_pool <- reactiveVal(character(0))
-  
   observe({
-    # Exclude currently chosen Y/X/Z (drop empty moderator)
     cur_exclude <- unique(c(input$yvar, input$xvar, input$zvar))
     cur_exclude <- cur_exclude[nzchar(cur_exclude)]
     ctrl_pool <- setdiff(available_all, cur_exclude)
     
-    # If choices haven't changed, do nothing (prevents rapid re-render/clearing)
     if (identical(ctrl_pool, prev_ctrl_pool())) return(NULL)
     
-    # Build labeled choices
     lab_ctrl <- lab_of(ctrl_pool)
     ctrl_choices <- as.list(ctrl_pool); names(ctrl_choices) <- lab_ctrl
-    
-    # Preserve selected controls that are still valid
     keep <- intersect(isolate(input$controls) %||% character(0), ctrl_pool)
     
-    # Freeze to avoid reacting to our own update
     freezeReactiveValue(input, "controls")
-    updateSelectizeInput(
-      session, "controls",
-      choices = ctrl_choices,
-      selected = keep,
-      server = TRUE
+    updateSelectizeInput(session, "controls",
+                         choices = ctrl_choices,
+                         selected = keep,
+                         server = TRUE
     )
-    
     prev_ctrl_pool(ctrl_pool)
   })
   
-  # Term label (supports interactions like a:b => Label(a) × Label(b))
+  # Pretty term label (handles interactions)
   term_label <- function(term) {
     if (term == "(Intercept)") return("Intercept")
     parts <- strsplit(term, ":", fixed = TRUE)[[1]]
     lbls  <- lab_of(parts)
     if (length(parts) > 1) paste(lbls, collapse = " × ") else lbls
-  }
-  
-  # Description helper
-  get_desc <- function(v) {
-    ds <- var_info$description[match(v, var_info$var)]
-    ifelse(is.na(ds) | !nzchar(ds), "", ds)
   }
   
   # Build formula string and model
@@ -167,34 +166,163 @@ server <- function(input, output, session) {
     vars_needed <- all.vars(f)
     d <- d[, intersect(vars_needed, names(d)), drop = FALSE]
     d <- coerce_for_lm(d)
-    lm(f, data = d)
+    lm(f, data = d, na.action = na.omit)
   })
   
+  # ----- Coefficient table -----
   output$lm_table <- renderTable({
-    fit <- lm_fit()
-    sm  <- summary(fit)
-    co  <- sm$coefficients
-    rn  <- rownames(co)
-    df  <- sm$df[2]  # residual df
+    sm <- summary(lm_fit())
+    co <- sm$coefficients
+    rn <- rownames(co)
+    rdf <- sm$df[2]
     
     out <- data.frame(
       term     = vapply(rn, term_label, character(1)),
-      beta     = unname(co[, "Estimate"]),
-      t        = unname(co[, "t value"]),
-      df       = rep(df, length(rn)),
-      p_value  = unname(co[, "Pr(>|t|)"]),
+      beta     = sprintf("%.4f", unname(co[, "Estimate"])),
+      t        = sprintf("%.3f", unname(co[, "t value"])),
+      df       = as.integer(rdf),
+      p_value  = ifelse(unname(co[, "Pr(>|t|)"]) < .001, "< .001",
+                        sprintf("%.3f", unname(co[, "Pr(>|t|)"]))),
       stringsAsFactors = FALSE
     )
-    
-    # Formatting
-    out$beta    <- sprintf("%.4f", out$beta)
-    out$t       <- sprintf("%.3f", out$t)
-    out$df      <- as.integer(out$df)
-    out$p_value <- ifelse(out$p_value < .001, "< .001", sprintf("%.3f", out$p_value))
     out
   }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "m")
   
-  # Small table showing label/description for selected X/Y/Z
+  # ----- Visualization (right after table) -----
+  output$viz <- renderPlot({
+    fit <- lm_fit()
+    d_fit <- model.frame(fit)  # data actually used after na.omit
+    x <- input$xvar; y <- input$yvar; z <- input$zvar
+    
+    # Helper: typical values for controls (mean for numeric, mode for factor/character)
+    typical_val <- function(v) {
+      vv <- d_fit[[v]]
+      if (is.numeric(vv)) {
+        mean(vv, na.rm = TRUE)
+      } else if (is.factor(vv)) {
+        lev <- names(sort(table(vv), decreasing = TRUE))[1]
+        factor(lev, levels = levels(vv))
+      } else {
+        tab <- sort(table(vv), decreasing = TRUE)
+        names(tab)[1]
+      }
+    }
+    
+    # Build X sequence
+    xv <- d_fit[[x]]
+    if (!is.numeric(xv)) {
+      # Non-numeric X: fallback to jitter + category means
+      p <- ggplot(d_fit, aes_string(x = x, y = y)) +
+        geom_jitter(alpha = 0.3, width = 0.2, height = 0, size = 1) +
+        stat_summary(fun = mean, geom = "point", size = 3) +
+        labs(x = lab_of(x), y = lab_of(y), title = "Mean outcome by X (X is non-numeric)") +
+        theme_minimal()
+      print(p)
+      return(invisible(NULL))
+    }
+    x_seq <- seq(min(xv, na.rm = TRUE), max(xv, na.rm = TRUE), length.out = 100)
+    
+    # Base row with typical values for all vars in the fit
+    nd_base <- setNames(vector("list", length = length(names(d_fit))), names(d_fit))
+    for (nm in names(d_fit)) nd_base[[nm]] <- typical_val(nm)
+    nd_base <- as.data.frame(nd_base, stringsAsFactors = FALSE)
+    nd_base[[x]] <- x_seq
+    
+    # Decide moderator handling
+    use_z <- nzchar(z)
+    z_is_numeric <- use_z && is.numeric(d_fit[[z]])
+    z_is_binary <- use_z && (z %in% bin_vars)
+    
+    # Base plot
+    p <- ggplot(d_fit, aes_string(x = x, y = y)) +
+      geom_point(alpha = 0.25, size = 1) +
+      labs(x = lab_of(x), y = lab_of(y)) +
+      theme_minimal()
+    
+    if (use_z && z_is_binary) {
+      # Two lines for z = 0 and z = 1
+      z_vals <- c(0, 1)
+      z_labs <- c("0", "1")
+      
+      # If the fit used a factor for z, coerce to factor with original levels containing "0"/"1"
+      z_in_fit <- d_fit[[z]]
+      is_factor_z <- is.factor(z_in_fit)
+      pred_lines <- lapply(seq_along(z_vals), function(i) {
+        nd <- nd_base
+        if (is_factor_z) {
+          levs <- levels(z_in_fit)
+          # If levels don't include "0"/"1", try to coerce; else fallback to first/second level
+          if (all(c("0","1") %in% levs)) {
+            nd[[z]] <- factor(z_labs[i], levels = levs)
+          } else {
+            nd[[z]] <- factor(levs[i], levels = levs)
+            z_labs[i] <<- levs[i]  # keep legend honest
+          }
+        } else {
+          nd[[z]] <- z_vals[i]
+        }
+        nd$.__label__ <- z_labs[i]
+        nd$.__yhat__  <- as.numeric(predict(fit, newdata = nd))
+        nd
+      })
+      pred_df <- do.call(rbind, pred_lines)
+      
+      p <- p +
+        geom_line(data = pred_df,
+                  aes(x = !!sym(x), y = .__yhat__, color = .__label__),
+                  linewidth = 1.1) +
+        labs(title = paste0("Effect of ", lab_of(x), " on ", lab_of(y),
+                            " by ", lab_of(z), " (0 vs 1)")) +
+        scale_color_discrete(name = lab_of(z))
+      output$mod_note <- renderUI(HTML("&nbsp;"))
+      
+    } else if (use_z && z_is_numeric) {
+      # Three simple slopes: -1SD, mean, +1SD
+      z_mean <- mean(d_fit[[z]], na.rm = TRUE)
+      z_sd   <- sd(d_fit[[z]], na.rm = TRUE)
+      z_vals <- c(z_mean - z_sd, z_mean, z_mean + z_sd)
+      z_labs <- c("-1 SD", "Mean", "+1 SD")
+      
+      pred_lines <- lapply(seq_along(z_vals), function(i) {
+        nd <- nd_base
+        nd[[z]] <- z_vals[i]
+        nd$.__label__ <- z_labs[i]
+        nd$.__yhat__  <- as.numeric(predict(fit, newdata = nd))
+        nd
+      })
+      pred_df <- do.call(rbind, pred_lines)
+      
+      p <- p +
+        geom_line(data = pred_df,
+                  aes(x = !!sym(x), y = .__yhat__, color = .__label__),
+                  linewidth = 1.1) +
+        labs(title = paste0("Simple slopes at ", lab_of(z), " = {−1 SD, mean, +1 SD}")) +
+        scale_color_discrete(name = lab_of(z))
+      output$mod_note <- renderUI(HTML("&nbsp;"))
+      
+    } else {
+      # No moderator or non-numeric moderator: single model-implied line
+      nd <- nd_base
+      nd$.__yhat__ <- as.numeric(predict(fit, newdata = nd))
+      p <- p +
+        geom_line(data = nd, aes(x = !!sym(x), y = .__yhat__), linewidth = 1.1) +
+        labs(title = "Model-implied trend")
+      if (use_z && !z_is_numeric) {
+        output$mod_note <- renderUI({
+          tags$p(style="color:#666;",
+                 paste("Moderator", shQuote(lab_of(z)),
+                       "is non-numeric; showing a single trend line at its typical value.")
+          )
+        })
+      } else {
+        output$mod_note <- renderUI(HTML("&nbsp;"))
+      }
+    }
+    
+    print(p)
+  })
+  
+  # ----- Variable info table -----
   output$var_info_table <- renderTable({
     x <- input$xvar; y <- input$yvar; z <- input$zvar
     rows <- list(
