@@ -15,8 +15,12 @@ output:
 <div style="overflow:auto;">
 
 <img src="assets/trust_in_institutions.png" 
-     alt="Declining trust in institutions (Gallup, 2025)" 
-     style="float:right; width:auto; height:auto; max-width:375px; margin:0 0 1em 1em;">
+     alt="Declining trust in institutions (Gallup)" 
+     style="float:right; width:auto; height:auto; max-width:375px; margin:0 0 0.25em 1em;">
+
+<div style="float:right; clear:right; font-size:0.85em; color:#555; font-style:italic; margin:0 0 1em 1em;">
+  Source: Gallup
+</div>
 
 <p>
 All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of Americans trust the Supreme Court, 30% trust the Presidency, and a mere 10% trust Congress. Why is that? We hypothesize that a core tenet of governance—the social contract between a state and its citizens—is broken. People feel that the state is not living up to its promise, and this informs their political attitudes and behavior.
