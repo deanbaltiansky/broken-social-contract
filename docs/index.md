@@ -12,8 +12,11 @@ output:
 
 ## Background
 
-All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of American trust The Supreme Court, 30% of Americans trust the Presidency, and a measly 10% trust Congress. Why is that? We hypothesize that a core tenet of governance, the social contract between a state and its citizens, is broken. People are feeling that the state is not living up to its promise... and this informs their political attitudes and behavior.\
-<img src="assets/trust_in_institutions.png" alt="Declining trust in institutions (Gallup, 2025)" style="width:100%; height:auto;">
+All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of Americans trust the Supreme Court, 30% trust the Presidency, and a mere 10% trust Congress. Why is that? We hypothesize that a core tenet of governance—the social contract between a state and its citizens—is broken. People feel that the state is not living up to its promise, and this informs their political attitudes and behavior. 
+
+<img src="assets/trust_in_institutions.png" 
+     alt="Declining trust in institutions (Gallup, 2025)" 
+     style="float:right; width:auto; height:auto; max-width:45%; margin:0 0 1em 1em;">
 
 ## Summary
 
