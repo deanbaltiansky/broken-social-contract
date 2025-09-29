@@ -10,9 +10,14 @@ output:
 
 <img src="assets/banner-flag.png" alt="Flag Banner" style="width:100%; height:auto;">
 
+## Background
+
+All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of American trust The Supreme Court, 30% of Americans trust the Presidency, and a measly 10% trust Congress. Why is that? We hypothesize that a core tenet of governance, the social contract between a state and its citizens, is broken. People are feeling that the state is not living up to its promise... and this informs their political attitudes and behavior.\
+<img src="assets/trust_in_institutions.png" alt="Declining trust in institutions (Gallup, 2025)" style="width:100%; height:auto;">
+
 ## Summary
 
-What are the consequences of a broken social contract? The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, we show that those who believe that the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. In Study 1, a nationally representative sample of Americans (N = 1,188) listed the guiding values of the U.S. on paper and the guiding values of the U.S. in practice. The linguistic distance between the two lists in semantic space was positively associated with political discontent. In Study 2, another nationally representative sample of Americans (N = 994), participants rated the government on the eight overarching values of the U.S. on paper that were derived from a computational clustering of Study 1 responses. Again, those who believed the government is not delivering on its founding promise were more likely to display political discontent. In Study 3, another nationally representative sample (N = 1,823) participated in a novel experimental paradigm designed to isolate the causal effect of a broken social contract on political discontent. Those who reflected on the ways in which the U.S. is not delivering on its promise consequently endorsed greater anti-establishment sentiment and radical change. This research highlights the social contract—an implicit agreement between a state and its citizens—as an important lens through which to understand growing political discontent in the U.S.
+The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, we show that those who believe that the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. In Study 1, a nationally representative sample of Americans (N = 1,188) listed the guiding values of the U.S. on paper and the guiding values of the U.S. in practice. The linguistic distance between the two lists in semantic space was positively associated with political discontent. In Study 2, another nationally representative sample of Americans (N = 994), participants rated the government on the eight overarching values of the U.S. on paper that were derived from a computational clustering of Study 1 responses. Again, those who believed the government is not delivering on its founding promise were more likely to display political discontent. In Study 3, another nationally representative sample (N = 1,823) participated in a novel experimental paradigm designed to isolate the causal effect of a broken social contract on political discontent. Those who reflected on the ways in which the U.S. is not delivering on its promise consequently endorsed greater anti-establishment sentiment and radical change. This research highlights the social contract—an implicit agreement between a state and its citizens—as an important lens through which to understand growing political discontent in the U.S.
 
 ## Study 1
 
@@ -39,11 +44,7 @@ What are the consequences of a broken social contract? The current research posi
   </p>
 </div>
 
-### Purpose
-
-### Methods
-
-### Computational approach
+The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we are able to measure the subjective experience of a broken social contract: Great distance, in high-dimensional semantic space, between what was promised and what is delivered. In ensuing multilevel models, we show that this precise unbiased measure of a broken social contract predicts political discontent over and above political ideology, personality, and demographic characteristics.
 
 ### Primary findings
 
