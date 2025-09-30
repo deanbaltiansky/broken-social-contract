@@ -85,9 +85,14 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
   </p>
 </div>
 
-The written responses, albeit extremely precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values, while staying true to our data-driven approach, we conducted k-means clustering on the written responses to the question asking for the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflect the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.
+## Dimension reduction
 
-<img src="assets/clusters.png" alt="K-Means Cluster Solution" style="width:100%; height:auto;">
+The written responses, albeit extremely precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values, while staying true to our data-driven approach, we reduced the dimensions of the free-written responses by conducting k-means clustering on the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflect the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.\
+\
+Below are is the cluster solution and the five most-mentioned values in each cluster:\
+\
+
+<img src="assets/clusters.png" alt="K-Means Cluster Solution" style="width:80%; height:auto;">
 
 <table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.95em; text-align:center;">
   <tr style="background:#f2f2f2; font-weight:bold;">
