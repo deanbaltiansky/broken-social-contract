@@ -36,7 +36,7 @@ To test this hypothesis, we conduct three complementary nationally representativ
 
 <div style="overflow:auto;">
 
-<img src="specification_curve.png" 
+<img src="assets/specification_curve.png" 
      alt="Linear models of Studies 1 and 2" 
      style="float:left; width:auto; height:auto; max-width:375px; margin:0 0 0.25em 1em;">
 
@@ -87,38 +87,38 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
 
 The written responses, albeit extremely precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values, while staying true to our data-driven approach, we conducted k-means clustering on the written responses to the question asking for the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflect the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.
 
-<table style="border-collapse:collapse; width:100%; font-size:0.95em; text-align:center;">
+<table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.95em; text-align:center;">
   <tr style="background:#f2f2f2; font-weight:bold;">
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_1.png" alt="Pursuit of happiness" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_1.png" alt="Pursuit of happiness" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Pursuit of happiness
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_2.png" alt="Individualism" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_2.png" alt="Individualism" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Individualism
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_3.png" alt="Democracy" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_3.png" alt="Democracy" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Democracy
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_4.png" alt="Equality" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_4.png" alt="Equality" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Equality
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_5.png" alt="Right to bear arms" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_5.png" alt="Right to bear arms" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Right to bear arms
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_6.png" alt="Freedom" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_6.png" alt="Freedom" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Freedom
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_7.png" alt="Diversity" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_7.png" alt="Diversity" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Diversity
     </th>
-    <th style="border:1px solid #ddd; padding:6px;">
-      <img src="assets/keycluster_8.png" alt="Justice" style="max-width:100%; height:auto; display:block; margin:0 auto 6px;">
+    <th style="border:1px solid #ddd; padding:6px; width:12.5%;">
+      <img src="assets/keycluster_8.png" alt="Justice" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
       Justice
     </th>
   </tr>
