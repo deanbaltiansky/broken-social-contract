@@ -3,6 +3,7 @@ title: "Broken Social Contract"
 output:
   html_document:
     self_contained: true
+    md_extensions: +raw_html
 ---
 
 # Political Discontent is Driven by A Broken Social Contract
@@ -93,17 +94,16 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
 
 <p>Below is the cluster solution and the five most-mentioned values in each cluster:</p>
 
-<!-- Side-by-side layout -->
-<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; margin: 0 auto;">
+<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; margin:0 auto;">
 
   <!-- Left: clusters image -->
-  <div style="flex:1; min-width:300px; max-width:45%;">
+  <div style="flex:1; min-width:300px; max-width:50%;">
     <img src="assets/clusters.png" alt="K-Means Cluster Solution"
          style="display:block; width:100%; height:auto; margin:0 auto;">
   </div>
 
   <!-- Right: table -->
-  <div style="flex:1; min-width:300px; max-width:55%; overflow-x:auto;">
+  <div style="flex:1; min-width:300px; max-width:50%; overflow-x:auto;">
     <table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.85em; text-align:center;">
       <tr style="background:#f2f2f2; font-weight:bold;">
         <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
