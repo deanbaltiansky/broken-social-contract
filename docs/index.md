@@ -92,7 +92,7 @@ The written responses, albeit extremely precise in capturing people’s intuitio
 Below are is the cluster solution and the five most-mentioned values in each cluster:\
 \
 
-<img src="assets/clusters.png" alt="K-Means Cluster Solution" style="width:80%; height:auto;">
+<img src="assets/clusters.png" alt="K-Means Cluster Solution" style="width:100%; height:auto;">
 
 <table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.95em; text-align:center;">
   <tr style="background:#f2f2f2; font-weight:bold;">
