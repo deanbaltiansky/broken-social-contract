@@ -52,8 +52,6 @@ The current research posits that political discontent—the dissatisfaction with
 
 ## Study 1
 
-</div>
-
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
     <a href="./studies/study-1/index.html" target="_blank" rel="noopener"
@@ -66,8 +64,6 @@ The current research posits that political discontent—the dissatisfaction with
 The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we are able to measure the subjective experience of a broken social contract: Great distance, in high-dimensional semantic space, between what was promised and what is delivered.\
 \
 Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract **positively predicts anti-establishment sentiment** (&beta; = 0.20, F(19,966) = 6.69, 95% CI [0.14, 0.26], p < .001) **and support for radical change** (&beta; = 0.15, F(19,966) = 4.96, 95% CI [0.09, 0.21], p < .001), and **negatively predicts trust in political democratic institutions** (&beta; = -0.23, F(19,966) = -7.52, 95% CI [-0.29, -0.17], p < .001) **and trust in non-political maintream institutions** (&beta; = -0.20, F(19,966) = -6.61, 95% CI [-0.26, -0.14], p < .001).
-
-</div>
 
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
@@ -92,9 +88,14 @@ The written responses, albeit extremely precise in capturing people’s intuitio
 Below are is the cluster solution and the five most-mentioned values in each cluster:\
 \
 
-<img src="assets/clusters.png" alt="K-Means Cluster Solution" style="width:100%; height:auto;">
+<div style="clear:both;"></div>
 
-<table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.95em; text-align:center;">
+<div style="max-width:900px; margin: 0 auto 16px;">
+  <img src="assets/clusters.png" alt="K-Means Cluster Solution"
+       style="display:block; width:100%; height:auto;">
+</div>
+
+<table style="border-collapse:collapse; wsidth:100%; table-layout:fixed; font-size:0.95em; text-align:center;">
   <tr style="background:#f2f2f2; font-weight:bold;">
     <th style="border:1px solid #ddd; padding:6px; width:12.5%; vertical-align:top;">
       <img src="assets/keycluster_1.png" alt="Pursuit of happiness" style="height:50px; width:auto; display:block; margin:0 auto 6px;">
