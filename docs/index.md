@@ -1,4 +1,3 @@
-
 ---
 title: "Broken Social Contract"
 output:
@@ -23,11 +22,13 @@ output:
 </div>
 
 <p>
-All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of Americans trust the Supreme Court, 30% trust the Presidency, and a mere 10% trust Congress.\
-\
-Why is that? We hypothesize that a core tenet of governance—the social contract between a state and its citizens—is broken. People feel that the state is not living up to its promise, and this informs their political attitudes and behavior.\
-\
-To test this hypothesis, we conduct three complementary nationally representative studies. In them, we map out the social contract in a data-driven approach (Study 1), we identify the primary broken promises in the social contract (Study 2), and we experimentally manipulate the sentiment of a broken social contract to test its causal impact on political discontent (Study 3). 
+All over the Western world, we are witnessing an erosion of trust in political institutions and growing anti-establishment sentiment. In the United States, confidence in the three branches of government is at a historic low: Only 27% of Americans trust the Supreme Court, 30% trust the Presidency, and a mere 10% trust Congress.
+</p>
+<p>
+Why is that? We hypothesize that a core tenet of governance—the social contract between a state and its citizens—is broken. People feel that the state is not living up to its promise, and this informs their political attitudes and behavior.
+</p>
+<p>
+To test this hypothesis, we conduct three complementary nationally representative studies. In them, we map out the social contract in a data-driven approach (Study 1), we identify the primary broken promises in the social contract (Study 2), and we experimentally manipulate the sentiment of a broken social contract to test its causal impact on political discontent (Study 3).
 </p>
 
 </div>
@@ -38,14 +39,14 @@ To test this hypothesis, we conduct three complementary nationally representativ
 
 <img src="assets/specification_curve.png" 
      alt="Linear models of Studies 1 and 2" 
-     style="float:left; width:auto; height:auto; max-width:375px; margin:0 0 0.25em 1em;">
+     style="float:left; width:auto; height:auto; max-width:375px; margin:0 1em 0.25em 0;">
 
-<div style="float:left; clear:left; font-size:0.85em; color:#555; font-style:italic; margin:0 0 1em 1em;">
+<div style="float:left; clear:left; font-size:0.85em; color:#555; font-style:italic; margin:0 1em 1em 0;">
   Linear models of Studies 1 and 2
 </div>
 
 <p>
-The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, we show that those who believe that the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. In Study 1, a nationally representative sample of Americans (N = 1,188) listed the guiding values of the U.S. on paper and the guiding values of the U.S. in practice. The linguistic distance between the two lists in semantic space was positively associated with political discontent. In Study 2, another nationally representative sample of Americans (N = 994), participants rated the government on the eight overarching values of the U.S. on paper that were derived from a computational clustering of Study 1 responses. Again, those who believed the government is not delivering on its founding promise were more likely to display political discontent. In Study 3, another nationally representative sample (N = 1,823) participated in a novel experimental paradigm designed to isolate the causal effect of a broken social contract on political discontent. Those who reflected on the ways in which the U.S. is not delivering on its promise consequently endorsed greater anti-establishment sentiment and radical change. This research highlights the social contract—an implicit agreement between a state and its citizens—as an important lens through which to understand growing political discontent in the U.S.
+The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, we show that those who believe the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. In Study 1, a nationally representative sample of Americans (N = 1,188) listed the guiding values of the U.S. on paper and the guiding values of the U.S. in practice. The linguistic distance between the two lists in semantic space was positively associated with political discontent. In Study 2 (N = 994), participants rated the government on the eight overarching values of the U.S. on paper that were derived from a computational clustering of Study 1 responses. Again, those who believed the government is not delivering on its founding promise were more likely to display political discontent. In Study 3 (N = 1,823), a novel experimental paradigm isolated the causal effect of a broken social contract on political discontent: prompting participants to reflect on the U.S. not delivering on its promise increased anti-establishment sentiment and support for radical change.
 </p>
 
 </div>
@@ -61,9 +62,12 @@ The current research posits that political discontent—the dissatisfaction with
   </p>
 </div>
 
-The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we are able to measure the subjective experience of a broken social contract: Great distance, in high-dimensional semantic space, between what was promised and what is delivered.\
-\
-Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract **positively predicts anti-establishment sentiment** (&beta; = 0.20, F(19,966) = 6.69, 95% CI [0.14, 0.26], p < .001) **and support for radical change** (&beta; = 0.15, F(19,966) = 4.96, 95% CI [0.09, 0.21], p < .001), and **negatively predicts trust in political democratic institutions** (&beta; = -0.23, F(19,966) = -7.52, 95% CI [-0.29, -0.17], p < .001) **and trust in non-political maintream institutions** (&beta; = -0.20, F(19,966) = -6.61, 95% CI [-0.26, -0.14], p < .001).
+<p>
+The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we measure the subjective experience of a broken social contract: great distance, in high-dimensional semantic space, between what was promised and what is delivered.
+</p>
+<p>
+Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract <strong>positively predicts anti-establishment sentiment</strong> (&beta; = 0.20, F(19,966) = 6.69, 95% CI [0.14, 0.26], p &lt; .001) <strong>and support for radical change</strong> (&beta; = 0.15, F(19,966) = 4.96, 95% CI [0.09, 0.21], p &lt; .001), and <strong>negatively predicts trust in political democratic institutions</strong> (&beta; = -0.23, F(19,966) = -7.52, 95% CI [-0.29, -0.17], p &lt; .001) <strong>and trust in non-political mainstream institutions</strong> (&beta; = -0.20, F(19,966) = -6.61, 95% CI [-0.26, -0.14], p &lt; .001).
+</p>
 
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
@@ -83,20 +87,23 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
 
 ## Dimension reduction
 
-The written responses, albeit extremely precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values, while staying true to our data-driven approach, we reduced the dimensions of the free-written responses by conducting k-means clustering on the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflect the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.\
-\
-Below are is the cluster solution and the five most-mentioned values in each cluster:\
-\
-<div style="display:flex; flex-wrap:wrap; gap:16px; margin: 0 auto;">
+<p>
+The written responses, albeit precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values while staying true to our data-driven approach, we reduced the dimensions of the free-written responses by conducting k-means clustering on the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflects the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.
+</p>
 
-  <!-- Left side: clusters image -->
-  <div style="flex:1; min-width:300px; max-width:50%;">
+<p>Below is the cluster solution and the five most-mentioned values in each cluster:</p>
+
+<!-- Side-by-side layout -->
+<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; margin: 0 auto;">
+
+  <!-- Left: clusters image -->
+  <div style="flex:1; min-width:300px; max-width:45%;">
     <img src="assets/clusters.png" alt="K-Means Cluster Solution"
          style="display:block; width:100%; height:auto; margin:0 auto;">
   </div>
 
-  <!-- Right side: table -->
-  <div style="flex:1; min-width:300px; max-width:50%; overflow-x:auto;">
+  <!-- Right: table -->
+  <div style="flex:1; min-width:300px; max-width:55%; overflow-x:auto;">
     <table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.85em; text-align:center;">
       <tr style="background:#f2f2f2; font-weight:bold;">
         <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
@@ -155,8 +162,38 @@ Below are is the cluster solution and the five most-mentioned values in each clu
         <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">life (54)</td>
       </tr>
 
-      <!-- continue your rows here ... -->
+      <tr>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">happiness (33)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">individuality (15)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">rule of law (21)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equal rights (16)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">rights (28)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">freedom of speech (196)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">religion (25)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">unity (45)</td>
+      </tr>
 
+      <tr>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">capitalism (31)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">self-determination (10)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">checks and balances (13)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equality for all (16)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">individual rights (24)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">freedom of religion (137)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">honesty (22)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">peace (28)</td>
+      </tr>
+
+      <tr>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">hard work (28)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">sovereignty (8)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">separation of powers (9)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equal opportunity (9)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">human rights (17)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">free speech (55)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">integrity (21)</td>
+        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">progress (24)</td>
+      </tr>
     </table>
   </div>
 </div>
@@ -164,8 +201,3 @@ Below are is the cluster solution and the five most-mentioned values in each clu
 ## Study 2
 
 ## Study 3
-
-
-
-
-
