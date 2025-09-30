@@ -38,6 +38,25 @@ The current research posits that political discontent—the dissatisfaction with
 
 ## Study 1
 
+<div style="overflow:auto;">
+
+<img src="assets/specification_curve.png" 
+     alt="Specification Curve of Linear Models From Studies 1 and 2" 
+     style="float:left; width:auto; height:auto; max-width:375px; margin:0 0 0.25em 1em;">
+
+<div style="float:left; clear:right; font-size:0.85em; color:#555; font-style:italic; margin:0 0 1em 1em;">
+  Specification Curve of Linear Models From Studies 1 and 2
+  
+</div>
+
+<p>
+The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we are able to measure the subjective experience of a broken social contract: Great distance, in high-dimensional semantic space, between what was promised and what is delivered.\
+\
+Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract **positively predicts anti-establishment sentiment** (&beta; = 0.20, F(19,966) = 6.69, 95% CI [0.14, 0.26], p < .001) **and support for radical change** (&beta; = 0.15, F(19,966) = 4.96, 95% CI [0.09, 0.21], p < .001), and **negatively predicts trust in political democratic institutions** (&beta; = -0.23, F(19,966) = -7.52, 95% CI [-0.29, -0.17], p < .001) **and trust in non-political maintream institutions** (&beta; = -0.20, F(19,966) = -6.61, 95% CI [-0.26, -0.14], p < .001).
+</p>
+
+</div>
+
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
     <a href="./studies/study-1/index.html" target="_blank" rel="noopener"
@@ -61,7 +80,7 @@ The current research posits that political discontent—the dissatisfaction with
   </p>
 </div>
 
-The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we are able to measure the subjective experience of a broken social contract: Great distance, in high-dimensional semantic space, between what was promised and what is delivered. In ensuing multilevel models, we show that this precise unbiased measure of a broken social contract predicts political discontent over and above political ideology, personality, and demographic characteristics.
+
 
 ### Primary findings
 

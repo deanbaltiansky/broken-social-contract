@@ -78,7 +78,27 @@ df_bsc <- df_bsc %>%
                             "PHD")),
          county_gini = as.numeric(county_gini),
          county_density = as.numeric(county_density),
-         county_medianincome = as.numeric(county_medianincome))
+         county_medianincome = as.numeric(county_medianincome)) %>% 
+  mutate(brokencontract_openai_z = scale(brokencontract_openai),
+         vote_likely_z = scale(vote_likely),
+         change_z = scale(change),
+         antiest_z = scale(antiest),
+         trust_deminst_z = scale(trust_deminst),
+         trust_natinst_z = scale(trust_natinst),
+         trust_science_z = scale(trust_science),
+         ideo_con_z = scale(ideo_con),
+         ideo_lib_z = scale(ideo_lib),
+         ideo_demsoc_z = scale(ideo_demsoc),
+         ideo_lbrtn_z = scale(ideo_lbrtn),
+         ideo_prog_z = scale(ideo_prog),
+         SDO_z = scale(SDO),
+         TIPI_agree_z = scale(TIPI_agree),
+         income_num_z = scale(income_num),
+         edu_num_z = scale(edu_num),
+         age_z = scale(age),
+         county_density_z = scale(as.numeric(county_density)),
+         county_gini_z = scale(as.numeric(county_gini)),
+         county_medianincome_z = scale(as.numeric(county_medianincome)))
 
 df_bsc_elg <- df_bsc %>% 
   filter(is_elg == 1)
@@ -907,7 +927,7 @@ df_bsc_elg %>%
 
 ## Linear models
 
-Here, I report the preregistered analyses. Feel free to explore different linear models here:\
+Here, I report the preregistered analyses (all variables are z-scored). Feel free to explore different linear models, with original scales, here:\
 \
 <a href="./lm-table-app/index.html" target="_blank" rel="noopener"
      style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
@@ -924,7 +944,7 @@ Here, I report the preregistered analyses. Feel free to explore different linear
 **Controls:** conservatism
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(antiest ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+m1 <- lm(antiest_z ~ brokencontract_openai_z + ideo_con_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -941,7 +961,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+m1 <- lm(antiest_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -958,7 +978,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+m1 <- lm(antiest_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -975,7 +995,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(antiest ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+m1 <- lm(antiest_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -994,7 +1014,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(change ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+m1 <- lm(change_z ~ brokencontract_openai_z + ideo_con_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1011,7 +1031,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+m1 <- lm(change_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1028,7 +1048,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+m1 <- lm(change_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1045,7 +1065,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(change ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+m1 <- lm(change_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1064,7 +1084,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+m1 <- lm(trust_deminst_z ~ brokencontract_openai_z + ideo_con_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1081,7 +1101,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+m1 <- lm(trust_deminst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1098,7 +1118,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+m1 <- lm(trust_deminst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1115,7 +1135,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_deminst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+m1 <- lm(trust_deminst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1134,7 +1154,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+m1 <- lm(trust_natinst_z ~ brokencontract_openai_z + ideo_con_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1151,7 +1171,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+m1 <- lm(trust_natinst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1168,7 +1188,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+m1 <- lm(trust_natinst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1185,7 +1205,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(trust_natinst ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+m1 <- lm(trust_natinst_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1204,7 +1224,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con,data = df_bsc_elg)
+m1 <- lm(vote_likely_z ~ brokencontract_openai_z + ideo_con_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1221,7 +1241,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree,data = df_bsc_elg)
+m1 <- lm(vote_likely_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1238,7 +1258,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age,data = df_bsc_elg)
+m1 <- lm(vote_likely_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
@@ -1255,7 +1275,7 @@ kbl(apa_lm$table) %>%
 **Controls:** conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density
 
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
-m1 <- lm(vote_likely ~ brokencontract_openai + ideo_con + SDO + TIPI_agree + man + white + hispanic + income_num + edu_num + age + county_medianincome + county_gini + county_density,data = df_bsc_elg)
+m1 <- lm(vote_likely_z ~ brokencontract_openai_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
 apa_lm <- apa_print(m1)
  
