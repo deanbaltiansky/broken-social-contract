@@ -94,109 +94,109 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
 
 <p>Below is the cluster solution and the five most-mentioned values in each cluster:</p>
 
-<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; margin:0 auto;">
+<table width="100%" style="border-collapse:collapse; table-layout:fixed;">
+  <tr style="vertical-align:top;">
+    <!-- Left column: image -->
+    <td style="width:35%; padding:0 8px 0 0; vertical-align:top;">
+      <img src="assets/clusters.png" alt="K-Means Cluster Solution" style="display:block; width:100%; height:auto;">
+    </td>
 
-  <!-- Left: clusters image -->
-  <div style="flex:1; min-width:300px; max-width:50%;">
-    <img src="assets/clusters.png" alt="K-Means Cluster Solution"
-         style="display:block; width:100%; height:auto; margin:0 auto;">
-  </div>
+    <!-- Right column: table -->
+    <td style="width:65%; padding:0 0 0 8px; vertical-align:top;">
+      <table style="border-collapse:collapse; width:100%; font-size:0.75em; text-align:left; word-wrap:break-word; overflow-wrap:break-word;">
+        <tr style="background:#f2f2f2; font-weight:bold;">
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_1.png" alt="Pursuit of happiness" style="height:36px; display:block; margin:0 auto 4px;">
+            Pursuit of happiness
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_2.png" alt="Individualism" style="height:36px; display:block; margin:0 auto 4px;">
+            Individualism
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_3.png" alt="Democracy" style="height:36px; display:block; margin:0 auto 4px;">
+            Democracy
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_4.png" alt="Equality" style="height:36px; display:block; margin:0 auto 4px;">
+            Equality
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_5.png" alt="Right to bear arms" style="height:36px; display:block; margin:0 auto 4px;">
+            Right to bear arms
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_6.png" alt="Freedom" style="height:36px; display:block; margin:0 auto 4px;">
+            Freedom
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_7.png" alt="Diversity" style="height:36px; display:block; margin:0 auto 4px;">
+            Diversity
+          </th>
+          <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
+            <img src="assets/keycluster_8.png" alt="Justice" style="height:36px; display:block; margin:0 auto 4px;">
+            Justice
+          </th>
+        </tr>
 
-  <!-- Right: table -->
-  <div style="flex:1; min-width:300px; max-width:50%; overflow-x:auto;">
-    <table style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.85em; text-align:center;">
-      <tr style="background:#f2f2f2; font-weight:bold;">
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_1.png" alt="Pursuit of happiness" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Pursuit of happiness
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_2.png" alt="Individualism" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Individualism
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_3.png" alt="Democracy" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Democracy
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_4.png" alt="Equality" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Equality
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_5.png" alt="Right to bear arms" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Right to bear arms
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_6.png" alt="Freedom" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Freedom
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_7.png" alt="Diversity" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Diversity
-        </th>
-        <th style="border:1px solid #ddd; padding:4px; vertical-align:top;">
-          <img src="assets/keycluster_8.png" alt="Justice" style="height:40px; width:auto; display:block; margin:0 auto 4px;">
-          Justice
-        </th>
-      </tr>
+        <tr>
+          <td style="border:1px solid #ddd; padding:3px;">opportunity (87)</td>
+          <td style="border:1px solid #ddd; padding:3px;">independence (143)</td>
+          <td style="border:1px solid #ddd; padding:3px;">democracy (294)</td>
+          <td style="border:1px solid #ddd; padding:3px;">equality (398)</td>
+          <td style="border:1px solid #ddd; padding:3px;">right to bear arms (49)</td>
+          <td style="border:1px solid #ddd; padding:3px;">freedom (505)</td>
+          <td style="border:1px solid #ddd; padding:3px;">diversity (59)</td>
+          <td style="border:1px solid #ddd; padding:3px;">justice (223)</td>
+        </tr>
 
-      <tr>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">opportunity (87)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">independence (143)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">democracy (294)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equality (398)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">right to bear arms (49)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">freedom (505)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">diversity (59)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">justice (223)</td>
-      </tr>
+        <tr>
+          <td style="border:1px solid #ddd; padding:3px;">pursuit of happiness (85)</td>
+          <td style="border:1px solid #ddd; padding:3px;">individualism (58)</td>
+          <td style="border:1px solid #ddd; padding:3px;">limited government (23)</td>
+          <td style="border:1px solid #ddd; padding:3px;">justice for all (20)</td>
+          <td style="border:1px solid #ddd; padding:3px;">right to vote (37)</td>
+          <td style="border:1px solid #ddd; padding:3px;">liberty (285)</td>
+          <td style="border:1px solid #ddd; padding:3px;">fairness (51)</td>
+          <td style="border:1px solid #ddd; padding:3px;">life (54)</td>
+        </tr>
 
-      <tr>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">pursuit of happiness (85)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">individualism (58)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">limited government (23)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">justice for all (20)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">right to vote (37)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">liberty (285)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">fairness (51)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">life (54)</td>
-      </tr>
+        <tr>
+          <td style="border:1px solid #ddd; padding:3px;">happiness (33)</td>
+          <td style="border:1px solid #ddd; padding:3px;">individuality (15)</td>
+          <td style="border:1px solid #ddd; padding:3px;">rule of law (21)</td>
+          <td style="border:1px solid #ddd; padding:3px;">equal rights (16)</td>
+          <td style="border:1px solid #ddd; padding:3px;">rights (28)</td>
+          <td style="border:1px solid #ddd; padding:3px;">freedom of speech (196)</td>
+          <td style="border:1px solid #ddd; padding:3px;">religion (25)</td>
+          <td style="border:1px solid #ddd; padding:3px;">unity (45)</td>
+        </tr>
 
-      <tr>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">happiness (33)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">individuality (15)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">rule of law (21)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equal rights (16)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">rights (28)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">freedom of speech (196)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">religion (25)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">unity (45)</td>
-      </tr>
+        <tr>
+          <td style="border:1px solid #ddd; padding:3px;">capitalism (31)</td>
+          <td style="border:1px solid #ddd; padding:3px;">self-determination (10)</td>
+          <td style="border:1px solid #ddd; padding:3px;">checks and balances (13)</td>
+          <td style="border:1px solid #ddd; padding:3px;">equality for all (16)</td>
+          <td style="border:1px solid #ddd; padding:3px;">individual rights (24)</td>
+          <td style="border:1px solid #ddd; padding:3px;">freedom of religion (137)</td>
+          <td style="border:1px solid #ddd; padding:3px;">honesty (22)</td>
+          <td style="border:1px solid #ddd; padding:3px;">peace (28)</td>
+        </tr>
 
-      <tr>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">capitalism (31)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">self-determination (10)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">checks and balances (13)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equality for all (16)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">individual rights (24)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">freedom of religion (137)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">honesty (22)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">peace (28)</td>
-      </tr>
-
-      <tr>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">hard work (28)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">sovereignty (8)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">separation of powers (9)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">equal opportunity (9)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">human rights (17)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">free speech (55)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">integrity (21)</td>
-        <td style="border:1px solid #ddd; padding:4px; vertical-align:top;">progress (24)</td>
-      </tr>
-    </table>
-  </div>
-</div>
+        <tr>
+          <td style="border:1px solid #ddd; padding:3px;">hard work (28)</td>
+          <td style="border:1px solid #ddd; padding:3px;">sovereignty (8)</td>
+          <td style="border:1px solid #ddd; padding:3px;">separation of powers (9)</td>
+          <td style="border:1px solid #ddd; padding:3px;">equal opportunity (9)</td>
+          <td style="border:1px solid #ddd; padding:3px;">human rights (17)</td>
+          <td style="border:1px solid #ddd; padding:3px;">free speech (55)</td>
+          <td style="border:1px solid #ddd; padding:3px;">integrity (21)</td>
+          <td style="border:1px solid #ddd; padding:3px;">progress (24)</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
 ## Study 2
 
