@@ -1,0 +1,2363 @@
+---
+title: "Broken Social Contract"
+subtitle: "Study 2: Analysis Report"
+Author: "Dean Baltiansky"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+knit: (function(input_file, encoding) { rmarkdown::render(input_file, encoding = encoding, output_file = 'index.html', output_dir = here::here('docs','studies','study-2')); })
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r,include=FALSE}
+library(apa)
+library(see)
+library(lme4)
+library(lmerTest)
+library(interactions)
+library(jtools)
+library(gridExtra)
+library(kableExtra)
+library(apaTables)
+library(papaja)
+library(knitr)
+library(psych)
+library(GPArotation)
+library(PerformanceAnalytics)
+library(gt)
+library(tidytext)
+library(textdata)
+library(tidyverse)
+library(diagram)
+library(factoextra)
+library(SnowballC)
+library(hunspell)
+library(quanteda)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-2/data/"
+
+df_bsc <- readr::read_csv(paste0(repo_url,"df_bsc.csv"), show_col_types = FALSE)
+df_bsc_long <- readr::read_csv(paste0(repo_url,"df_bsc_long.csv"), show_col_types = FALSE)
+```
+
+```{r,include=FALSE}
+df_bsc <- df_bsc %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")),
+         county_gini = as.numeric(county_gini),
+         county_density = as.numeric(county_density),
+         county_medianincome = as.numeric(county_medianincome)) %>% 
+  mutate(brokenpromise_z = scale(brokenpromise),
+         personaldisappoint_z = scale(personaldisappoint),
+         promisekept_z = scale(promisekept),
+         idealkept_z = scale(idealkept),
+         vote_likely_z = scale(vote_likely),
+         change_z = scale(change),
+         antiest_z = scale(antiest),
+         trust_deminst_z = scale(trust_deminst),
+         trust_natinst_z = scale(trust_natinst),
+         ideo_con_z = scale(ideo_con),
+         ideo_lib_z = scale(ideo_lib),
+         ideo_demsoc_z = scale(ideo_demsoc),
+         ideo_lbrtn_z = scale(ideo_lbrtn),
+         ideo_prog_z = scale(ideo_prog),
+         SDO_z = scale(SDO),
+         TIPI_agree_z = scale(TIPI_agree),
+         income_num_z = scale(income_num),
+         edu_num_z = scale(edu_num),
+         age_z = scale(age),
+         county_density_z = scale(as.numeric(county_density)),
+         county_gini_z = scale(as.numeric(county_gini)),
+         county_medianincome_z = scale(as.numeric(county_medianincome)))
+
+df_bsc_elg <- df_bsc %>% 
+  filter(is_elg == 1)
+
+elg_PIDs <- df_bsc_elg %>% 
+  select(PID) %>% 
+  unlist() %>% 
+  unname()
+
+df_bsc_long_elg <- df_bsc_long %>% 
+  filter(PID %in% elg_PIDs)
+```
+
+# Background
+
+This is a preregistered nationally representative study. See <a href="https://osf.io/zkq3c/?view_only=8cc1f2b718d549998ee24a7bed65d4c4" target="_blank">preregistration</a>.\
+\
+This is joint work with <a href="https://sandramatz.com/" target="_blank">Prof. Sandra Matz</a>, led by me as the Principal Investigator.
+
+## Description
+
+In Study 1, we asked participants to write in which values they believe guide the U.S. on paper and which values they believe guide the U.S. in practice. We then K-means clustered the embeddings of the values they wrote as the ones that guide the U.S. on paper. This helped us identify the overarching values that are seen by Americans as representing what is promised by the state in the American social contract: (1) Democracy; (2) Equality; (3) Freedom; (4) Individualism; (5) Justice; (6) Pursuit of Happiness; (7) Right to Bear Arms; and (8) Tolerance.\
+\
+The purpose of Study 2 is two-fold: (1) replicate the effects of a broken social contract on political discontent, as observed in Study 1; (2) identify the overarching values that drive this effect. In other words, Study 2 helps us uncover which values are perceived to be under-delivered by the state, which ones are the most important predictors of political discontent, and whether some people care more about some values and others care about other values.
+
+## Hypotheses
+
+1. The perceived extent to which the promise of the US on paper is broken is positively associated with support for radical change.\
+2. The perceived extent to which the promise of the US on paper is broken is positively associated with anti-establishment sentiment.\
+3. The perceived extent to which the promise of the US on paper is broken is negatively associated with trust in democratic institutions (executive, legislative, and judicial branch).\
+4. The perceived extent to which the promise of the US on paper is broken is negatively associated with trust in mainstream societal institutions (media, education, police, military, finance, medicine).
+
+## Study design
+
+The study consists of two major parts:\
+\
+**1. Social contract:** Participants saw eight overarching values that guide the US on paper. They were asked to indicate their perception of priorities of the US on paper as they relate to these values. Then, they indicated the extent to which they believed the US lives up to each of these values. Then, they indicated their own preferred prioritization of these values, if they were to design a brand new state.\
+**2. Attitudes and individual differences:** Participants completed measures of anti-establishment sentiment, trust in institutions, social dominance orientation, personality, support for radical change, and political identification/behavior.
+
+## Computational analytic strategy
+
+The broken promise score is a weighted mean of the "values delivered" score, weighted by the perceived priorities of the U.S., as indicated by the participant.\
+\
+To get to this weighted mean, each score assigned to the values delivered by the US government was be weighted by the participant-assigned priorities indicated in the “priorities of the US on paper” measure. That is, we multiplied the score (0-100) of each value by the weight of the value and took the sum of all weighted value scores.\
+\
+For example, if a participant indicated that the government largely delivers on the value of “democracy” by assigning 90 points, and indicated that the the value of “democracy” counts for 20% of the US’s priorities on paper, then this value would be weighted 90*0.2. The same logic is applied to all the other values. Then, the sum of those scores was counted as the weighted mean of the US delivering on its prioritized promise.\
+\
+Then, we reverse-scored that sum by subtracting it from 100 so that higher scores indicate a more broken promise.
+
+# Data collection
+
+We collected data on 5/31/2024-6/1/2024 through Connect by CloudResearch; an online participant recruitment platform. The sample was intended to be representative of the U.S. population in May 2024 along the lines of gender (~50.4% women ~49.6% men), race (~58.9% non-Hispanic White, ~18.2% Hispanic or Latino, ~13.6% Black, ~6.3% Asian, and ~3% more than one race or other), age (~20.1% 18-29 years, ~25.9% 30-44 years, ~23.3% 45-59 years, and ~30.7% 60-99 years), and political party affiliation (41% Independents, 30% Republicans, and 28% Democrats). The target sample was set at 1,000 participants.\
+\
+We excluded participants who failed a simple attention check, embedded in the anti-establishment scale. Let's see how many eligible participants we end up with:
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+eligible_N <- df_bsc %>% 
+  group_by(is_elg) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  filter(is_elg == 1) %>% 
+  select(N) %>% 
+  unname() %>% 
+  unlist()
+
+df_bsc %>% 
+  group_by(is_elg) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+Great. That leaves us with `r eligible_N` eligible participants.
+
+# Demographics
+
+## Race and ethnicity
+
+```{r,results='asis',echo=TRUE,warning=FALSE}
+df_bsc_elg %>% 
+  group_by(race,hispanic) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(Perc)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Gender
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  mutate(gender = ifelse(is.na(gender) | gender == "","other",gender)) %>% 
+  group_by(gender) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(Perc)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Age
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  summarise(age_mean = round(mean(age,na.rm = T),2),
+            age_sd = round(sd(age,na.rm = T),2)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Education
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(edu) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Income
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = income)) +
+  geom_bar() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  coord_flip()
+```
+
+## County inequallity
+
+County GINI coefficient was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
+df_bsc_elg %>% 
+  filter(!is.na(county_gini)) %>% 
+  ggplot(aes(x = county_gini)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 0.005) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_gini,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## County median income
+
+County median income was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
+df_bsc_elg %>% 
+  filter(!is.na(county_medianincome)) %>% 
+  ggplot(aes(x = county_medianincome)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 5000) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_medianincome,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## County density
+
+County density was taken from the US Census Website.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(4,3)}
+df_bsc_elg %>% 
+  filter(!is.na(county_density)) %>% 
+  ggplot(aes(x = county_density)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 500) +
+  #scale_x_continuous(breaks = seq(0,1,0.1)) +
+  ylab("count") +
+  geom_vline(xintercept = mean(df_bsc_elg$county_density,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+# Politics
+
+## Ideology
+
+Participants were asked about the extent to which they subscribe to the following ideologies on a scale of 1-7 (select NA if unfamiliar): Conservatism, Liberalism, Democratic Socialism, Libertarianism, Progressivism.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(7,5)}
+means <- df_bsc_elg %>%
+  dplyr::select(PID,ideo_con:ideo_prog) %>% 
+  pivot_longer(-PID,
+               names_to = "ideo",
+               values_to = "score") %>% 
+  filter(!is.na(score)) %>% 
+  group_by(ideo) %>% 
+  summarise(score = mean(score)) %>% 
+  ungroup()
+
+df_bsc_elg %>%
+  dplyr::select(PID,ideo_con:ideo_prog) %>% 
+  pivot_longer(-PID,
+               names_to = "ideo",
+               values_to = "score") %>% 
+  filter(!is.na(score)) %>%  
+  ggplot() +
+  geom_density(aes(x = score), fill = "lightblue") +
+  scale_x_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  geom_vline(data = means,mapping = aes(xintercept = score),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold")) +
+  facet_wrap(~ideo,nrow = 2)
+
+```
+
+## Party ID
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(party_id) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(Perc)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Vote in 2020
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(vote_2020) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(N)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Vote in 2024
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(vote_2024) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(N)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+
+# Measures
+
+## US priorities on paper
+
+Since its independence and onwards, the formation of the United States as a sovereign country was based on a number of values, all of which were inscribed in the constitution. This document, importantly, has evolved since it was first written.\
+\
+On paper (in the constitution), what are the values that the U.S. stands for? We want you to indicate the United State's priorities on paper.\
+\
+To that end, you have a sum of 100 points. Please allocate those points to the following values based on how important you think they are to the U.S. on paper.\
+\
+The values, presented in alphabetical order, are: Democracy, Equality, Freedom, Individualism, Justice, Pursuit of Happiness, Right to Bear Arms, Tolerance.\
+\
+So, If you think a certain value is more important to the U.S. on paper than another value, then the first value would get more points than the second. If you think a certain value is not important at all to the U.S. on paper, it would get zero points. The total must add up to 100 points.
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_long_elg %>% 
+  filter(type == "paper") %>% 
+  group_by(value) %>% 
+  summarise(priority_us = round(mean(weight),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## US delivering on its promise
+
+Now, please indicate the extent to which the U.S. government, regardless of party, is living up to each of these values, in practice.\
+\
+In the scale below, 0 means that the U.S. is not living up to what this value stands for at all (it cannot get any worse) and 100 means that the U.S. is living up to what this value stands for to a great extent (it cannot get any better).
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_long_elg %>% 
+  filter(type == "paper") %>% 
+  group_by(value) %>% 
+  summarise(score = round(mean(score,na.rm = T),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Participants' ideal
+
+And now, we want you to imagine your ideal country.\
+\
+Importantly, imagine this ideal country as if you are randomly born into its population. You can end up in any level of its citizenry. So, if you could design a country completely from scratch and write its constitution, what would be its guiding values?\
+\
+Again, you have a sum of 100 points. Please allocate those points to the following values based on how important they are to you.\
+\
+The values, presented in alphabetical order, are: Democracy, Equality, Freedom, Individualism, Justice, Pursuit of Happiness, Right to Bear Arms, Tolerance.\
+\
+So, If a certain value is more important to you than another value, then the first value would get more points than the second. If a certain value is not important at all to you, it would get zero points. Must total 100 points.
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_long_elg %>% 
+  filter(type == "ideal") %>% 
+  group_by(value) %>% 
+  summarise(priority_ideal = round(mean(weight),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Broken promise
+
+The score was computed from two questions: US priorities on paper and US delivering on its promise.\
+\
+For every value, we multiplied the weight (priorities of the US on paper) by the score (US delivering on its promise) to created weighted scores - one per value. Then, we summed all the weighted mean scores. Then, we subtracted that sum score from 100 to create the broken social contract score.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>%
+  ggplot(aes(x = brokenpromise)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 1) +
+  geom_vline(xintercept = mean(df_bsc_elg$brokenpromise,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  scale_x_continuous(limits = c(-1,101),
+                     breaks = seq(0,100,20)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"))
+
+```
+
+## Personal disappointment
+
+The score was computed from two questions: personal priorities and US delivering on its promise.\
+\
+Same way as the broken promise score.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>%
+  ggplot(aes(x = personaldisappoint)) +
+  geom_histogram(fill = "lightblue",
+                 binwidth = 1) +
+  geom_vline(xintercept = mean(df_bsc_elg$personaldisappoint,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  scale_x_continuous(limits = c(-1,101),
+                     breaks = seq(0,100,20)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"))
+
+```
+
+## Anti-Establishment
+
+```{r,include=F}
+alpha_table <- df_bsc_elg %>% 
+  dplyr::select(antiest_1,
+                antiest_2,
+                antiest_3,
+                antiest_4R) %>% 
+  psych::alpha()
+
+alpha <- alpha_table$total[1]
+```
+
+1. The US’s economy is rigged to advantage the rich and powerful\
+2. Traditional politicians and parties don’t care about people like me\
+3. Experts in this country don’t understand the lives of people like me\
+4. Most of the time we can trust people in the government to do what is right [R]
+\
+alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = antiest)) +
+  geom_density(fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(1,7)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$antiest,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Trust in democratic institutions
+
+```{r,include=F}
+alpha_table <- df_bsc_elg %>% 
+  dplyr::select(trust_congress:trust_courts) %>% 
+  psych::alpha()
+
+alpha <- alpha_table$total[1]
+```
+
+Please indicate how much you trust or distrust the following institutions (1 = Strongly *Distrust* to 7 = *Strongly Trust*)\
+\
+1. The US Congress / Legislative Branch\
+2. The US Government / Executive Branch\
+3. The US Courts / Judicial Branch\
+\
+alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = trust_deminst)) +
+  geom_density(fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(1,7)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$trust_deminst,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Trust in national mainstream institutions
+
+```{r,include=F}
+alpha_table <- df_bsc_elg %>% 
+  dplyr::select(trust_media,
+                trust_edu,
+                trust_police,
+                trust_millitary,
+                trust_finance,
+                trust_med) %>% 
+  psych::alpha()
+
+alpha <- alpha_table$total[1]
+```
+
+Please indicate how much you trust or distrust the following institutions (1 = Strongly *Distrust* to 7 = *Strongly Trust*)\
+\
+1. Mainstream media in the US (e.g., CNN, FOX News, MSNBC, New York Times, Wall-Street Journal, USA Today) \
+2. The education system in the US\
+3. Law enforcement / police in the US\
+4. The US Military\
+5. Financial institutions in the US (e.g., Wall Street, The Fed, The Big Banks)\
+6. The medical system in the US\
+\
+alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = trust_natinst)) +
+  geom_density(fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(1,7)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$trust_natinst,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Support for radical change
+
+To what extent do you agree with the following statement?\
+\
+*The way this country works needs to be radically changed*
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = change)) +
+  geom_density(fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(1,7)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$change,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Social Dominance Orientiation
+
+```{r,include=F}
+alpha_table <- df_bsc_elg %>% 
+  dplyr::select(SDO_1:SDO_8R) %>% 
+  psych::alpha()
+
+alpha <- alpha_table$total[1]
+```
+
+1. An ideal society requires some groups to be on top and others to be on the bottom\
+2. Some groups of people are simply inferior to other groups\
+3. No one group should dominate in society [R]\
+4. Groups at the bottom are just as deserving as groups at the top [R]\
+5. Group equality should not be our primary goal\
+6. It is unjust to try to make groups equal\
+7. We should do what we can to equalize conditions for different groups [R]\
+8. We should work to give all groups an equal chance to succeed [R]\
+\
+alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = SDO)) +
+  geom_density(fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(1,7)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$SDO,na.rm = T),
+             color = "grey15",
+             size = 1,
+             linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Personality
+
+I see myself as... (1 = *Strongly Disagree* to 7 = *Strongly Agree*)
+
+1. Extraverted, enthusiastic\
+2. Critical, quarrelsome [R]\
+3. Dependable, self-disciplined\
+4. Anxious, easily upset\
+5. Open to new experiences, complex\
+6. Reserved, quiet [R]\
+7. Sympathetic, warm\
+8. Disorganized, careless [R]\
+9. Calm, emotionally stable [R]\
+10. Conventional, uncreative [R]\
+\
+**Extraversion:** Mean score of items 1 and 6\
+**Agreeableness:** Mean score of items 2 and 7\
+**Conscientiousness:** Mean score of items 3 and 8\
+**Neuroticism:** Mean score of items 4 and 9\
+**Openness:** Mean score of items 5 and 10
+
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(7,5)}
+means <- df_bsc_elg %>%
+  dplyr::select(PID,TIPI_extra:TIPI_open) %>% 
+  pivot_longer(-PID,
+               names_to = "trait",
+               values_to = "score") %>% 
+  filter(!is.na(score)) %>% 
+  group_by(trait) %>% 
+  summarise(score = mean(score)) %>% 
+  ungroup()
+
+df_bsc_elg %>%
+  dplyr::select(PID,TIPI_extra:TIPI_open) %>% 
+  pivot_longer(-PID,
+               names_to = "trait",
+               values_to = "score") %>% 
+  filter(!is.na(score)) %>%  
+  ggplot() +
+  geom_density(aes(x = score), fill = "lightblue",color = NA) +
+  scale_x_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  geom_vline(data = means,mapping = aes(xintercept = score),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold")) +
+  facet_wrap(~trait,nrow = 2)
+
+```
+
+## Voting intentions
+
+What is the likelihood that you will vote in the 2024 Presidential Elections?
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = vote_likely)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,5,1),
+                     limits = c(0,6)) +
+  ylab("density") +
+  geom_vline(xintercept = mean(df_bsc_elg$vote_likely,na.rm = T),
+             color = "grey15",
+             size = 1,
+             linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+# Analysis
+
+## Correlation matrix
+
+\
+<a href="./app/index.html" target="_blank" rel="noopener"
+     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
+    EXPLORE CORRELATIONS ↗
+  </a>\
+\
+
+Broken promise score, personal disappointment score, support for radical change, anti-establishment sentiment, trust in democratic institutions, trust in mainstream societal institutions, conservatism, SDO, TIPI extraversion, TIPI agreeableness, TIPI Conscientiousness, TIPI neuroticism, TIPI openness.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
+df_bsc_elg %>% 
+  dplyr::select(brokenpromise:personaldisappoint,change,antiest:trust_natinst,ideo_con,SDO,TIPI_extra:TIPI_open) %>%
+  corPlot(upper = TRUE,stars = TRUE,xsrt = 270)
+```
+
+# Exploratory analysis
+
+Each of the values delivered scores, independently, will be inserted into a model as a predictor. This will be done for each of the four primary outcome variables separately.\
+\
+For each one of these exploratory models, we will include political ideology as a moderator.\
+\
+The personal disappointment score will be added to all models from the analysis plan as a control variable.
+
+## Controlling for personal disapointment
+
+### Support for radical change
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ brokenpromise_z + personaldisappoint_z + ideo_con_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+### Anti-establishment sentiment
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ brokenpromise_z + personaldisappoint_z + ideo_con_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+### Trust in democratic institutions
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ brokenpromise_z + personaldisappoint_z + ideo_con_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+### Trust in national institutions
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ brokenpromise_z + personaldisappoint_z + ideo_con_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+## Breaking it by specific value
+
+Here we took the weighted scored of each value to predict our outcome variables.
+
+```{r,include=FALSE}
+df_bsc_weightedscores <- df_bsc_long_elg %>% 
+  filter(type == "paper") %>% 
+  select(PID,value,weighted_score) %>% 
+  pivot_wider(names_from = value,
+              values_from = weighted_score) %>% 
+  mutate(democracy_z = scale(democracy),
+         equality_z = scale(equality),
+         freedom_z = scale(freedom),
+         individualism_z = scale(individualism),
+         justice_z = scale(justice),
+         happiness_z = scale(happiness),
+         arms_z = scale(arms),
+         tolerance_z = scale(tolerance))
+
+df_bsc_elg <- df_bsc_elg %>% 
+  left_join(df_bsc_weightedscores,by = "PID")
+
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
+df_bsc_elg %>% 
+  dplyr::select(antiest,change,trust_deminst,trust_natinst,democracy:tolerance) %>%
+  corPlot(upper = TRUE,stars = TRUE,xsrt = 270)
+```
+
+
+### Support for radical change
+
+#### Democracy: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ democracy_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ democracy_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ democracy_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ equality_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ equality_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ equality_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "equality_z",
+              modx = "ideo_con_z")
+```
+
+#### Freedom: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ freedom_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ freedom_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ freedom_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ individualism_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ individualism_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ individualism_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ justice_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ justice_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ justice_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ happiness_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ happiness_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ happiness_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ arms_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ arms_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ arms_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "arms_z",
+              modx = "ideo_con_z")
+```
+
+#### Tolerance: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ tolerance_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ tolerance_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(change_z ~ tolerance_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+### Anti-establishment sentiment
+
+#### Democracy: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ democracy_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ democracy_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ democracy_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ equality_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ equality_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ equality_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ freedom_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ freedom_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ freedom_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ individualism_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ individualism_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ individualism_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ justice_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ justice_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ justice_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ happiness_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ happiness_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ happiness_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ arms_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ arms_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ arms_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ tolerance_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ tolerance_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(antiest_z ~ tolerance_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "tolerance_z",
+              modx = "ideo_con_z")
+```
+
+### Trust in democratic institutions
+
+#### Democracy: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ democracy_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ democracy_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ democracy_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "democracy_z",
+              modx = "ideo_con_z")
+```
+
+#### Equality: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ equality_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ equality_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ equality_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ freedom_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ freedom_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ freedom_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "freedom_z",
+              modx = "ideo_con_z")
+```
+
+#### Individualism: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ individualism_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ individualism_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ individualism_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ justice_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ justice_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ justice_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ happiness_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ happiness_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ happiness_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ arms_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ arms_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ arms_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ tolerance_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ tolerance_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_deminst_z ~ tolerance_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "tolerance_z",
+              modx = "ideo_con_z")
+```
+
+### Trust in national institutions
+
+#### Democracy: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ democracy_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ democracy_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Democracy: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ democracy_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "democracy_z",
+              modx = "ideo_con_z")
+```
+
+#### Equality: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ equality_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ equality_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Equality: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ equality_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ freedom_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ freedom_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Freedom: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ freedom_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+interact_plot(m1,
+              pred = "freedom_z",
+              modx = "ideo_con_z")
+```
+
+#### Individualism: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ individualism_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ individualism_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Individualism: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ individualism_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ justice_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ justice_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Justice: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ justice_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ happiness_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ happiness_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Pursuit of Happiness: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ happiness_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ arms_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ arms_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Right to bear arms: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ arms_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: No controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ tolerance_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: With controls\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ tolerance_z + SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+#### Tolerance: Interaction with ideology\
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+m1 <- lm(trust_natinst_z ~ tolerance_z*ideo_con_z,data = df_bsc_elg)
+
+apa_lm <- apa_print(m1)
+apa_table(
+  apa_lm$table, 
+  placement = "H"
+)
+```
+
+# Extra
+
+## Visualizations
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+library(maps)
+
+MainStates <- map_data("state")
+
+# read the state population data
+StatePopulation <- read.csv("https://raw.githubusercontent.com/ds4stats/r-tutorials/master/intro-maps/data/StatePopulation.csv", as.is = TRUE)
+
+bsc_bystate <- df_bsc_elg %>% 
+  group_by(state) %>% 
+  summarise(brokenpromise = mean(brokenpromise_z,na.rm = T)) %>% 
+  ungroup() %>% 
+  rename(region = state) %>% 
+  mutate(region = tolower(region),
+         region = ifelse(region == "louisana","louisiana",region))
+
+mergedstates <- MainStates %>% 
+  left_join(bsc_bystate,by = "region")
+```
+
+```{r}
+ggplot() + 
+  geom_polygon(data = mergedstates, 
+               aes(x = long, 
+                   y = lat, 
+                   group = group,
+                   fill = brokenpromise),
+                color = "white",
+               size = 0.2)
+```
+
+# All value broken models
+
+
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+five_dvs = c("antiest_z","change_z","trust_deminst_z","trust_natinst_z","vote_likely_z")
+eight_values = c("democracy_z","equality_z","freedom_z","individualism_z","justice_z","happiness_z","arms_z","tolerance_z")
+
+df_modeloutputs = tibble(dv = NA,
+                        pred = NA,
+                        b = NA,
+                        t = NA,
+                        low_CI = NA,
+                        high_CI = NA,
+                        p = NA)
+
+for (outcome in five_dvs){
+  for (value in eight_values){
+    
+    formula = paste0(outcome,"~",value,"+ SDO_z + TIPI_agree_z + gender + race + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z")
+    
+    m = lm(formula,data = df_bsc_elg)
+    
+    coef <- m$coefficients[value]
+    t_value <- coef(summary(m))[value,"t value"]
+    CI_low <- confint(m)[value,1]
+    CI_high <- confint(m)[value,2]
+    p_value <- coef(summary(m))[value,"Pr(>|t|)"]
+    
+    df_current = tibble(dv = outcome,
+                        pred = value,
+                        b = coef,
+                        t = t_value,
+                        low_CI = CI_low,
+                        high_CI = CI_high,
+                        p = p_value)
+    
+    df_modeloutputs <- df_modeloutputs %>% 
+      bind_rows(df_current)
+  }
+}
+
+df_modeloutputs %>% 
+  write.csv("table_2.csv",row.names = F)
+```
+
+# by ideology
+
+```{r}
+df_bsc_elg %>% 
+  select(brokenpromise_z,ideo_con_z:ideo_prog_z) %>% 
+  pivot_longer(-brokenpromise_z,
+               names_to = "ideo",
+               values_to = "score",
+               names_prefix = "ideo_",
+               values_drop_na = T) %>% 
+  separate(ideo,into = c("ideo","temp"),sep = "_") %>% 
+  select(-temp) %>% 
+  ggplot(aes(x = score,y = brokenpromise_z)) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ideo)
+
+df_bsc_elg %>% 
+  select(brokenpromise_z,ideo_con_z:ideo_prog_z) %>% 
+  corPlot(stars = T)
+```
+
+# by political party
+
+```{r}
+df_bsc_elg %>% 
+  group_by(party_id) %>% 
+  summarise(n = n(),
+            mean = mean(brokenpromise,na.rm = T),
+            sd = sd(brokenpromise,na.rm = T))
+```
+
+# by income
+
+```{r}
+df_bsc_elg %>% 
+  ggplot(aes(x = income_num,y = brokenpromise_z)) +
+  geom_smooth(method = "lm")
+
+```
+
+# by race
+
+```{r}
+df_bsc_elg %>% 
+  group_by(race) %>% 
+  summarise(n = n(),
+            mean = mean(brokenpromise,na.rm = T),
+            sd = sd(brokenpromise,na.rm = T))
+```
+
+```{r}
+ideos <- df_bsc_elg %>% 
+  select(PID,ideo_con:ideo_prog) %>% 
+  mutate_at(vars(-PID),function(x){replace_na(x,0)})
+
+cons <- ideos %>% 
+  filter(ideo_con > 4) %>% 
+  select(PID) %>% 
+  unname() %>% 
+  unlist()
+
+libs <- ideos %>% 
+  filter(ideo_lib > 4) %>% 
+  select(PID) %>% 
+  unname() %>% 
+  unlist()
+
+socs <- ideos %>% 
+  filter(ideo_demsoc > 4) %>% 
+  select(PID) %>% 
+  unname() %>% 
+  unlist()
+
+lbrtns <- ideos %>% 
+  filter(ideo_lbrtn > 4) %>% 
+  select(PID) %>% 
+  unname() %>% 
+  unlist()
+
+progs <- ideos %>% 
+  filter(ideo_prog > 4) %>% 
+  select(PID) %>% 
+  unname() %>% 
+  unlist()
+
+conservatives <- df_bsc_s2_long_elg %>% 
+  filter(type == "paper") %>% 
+  filter(PID %in% cons) %>% 
+  select(PID,value,weight,weighted_score) %>% 
+  group_by(value) %>% 
+  summarise(weight = mean(weight,na.rm = T),
+            score = mean(weighted_score,na.rm = T)) %>% 
+  ungroup()
+
+liberals <- df_bsc_s2_long_elg %>% 
+  filter(type == "paper") %>% 
+  filter(PID %in% libs) %>% 
+  select(PID,value,weight,weighted_score) %>% 
+  group_by(value) %>% 
+  summarise(weight = mean(weight,na.rm = T),
+            score = mean(weighted_score,na.rm = T)) %>% 
+  ungroup()
+```
+

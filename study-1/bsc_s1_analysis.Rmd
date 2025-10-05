@@ -114,9 +114,9 @@ df_bsc_long_elg <- df_bsc_long %>%
 
 # Background
 
-This is a preregistered nationally representative study. See preregistration <a href="https://osf.io/gtv5n/?view_only=4466b8cdb0664fb7892aa79506fce2b3" target="_blank">here</a>.\
+This is a preregistered nationally representative study. See <a href="https://osf.io/gtv5n/?view_only=4466b8cdb0664fb7892aa79506fce2b3" target="_blank">preregistration</a>.\
 \
-This is joint work with Prof. <a href="https://sandramatz.com/" target="_blank">Sandra Matz</a>, led by me as the Principal Investigator.
+This is joint work with <a href="https://sandramatz.com/" target="_blank">Prof. Sandra Matz</a>, led by me as the Principal Investigator.
 
 ## Description
 
