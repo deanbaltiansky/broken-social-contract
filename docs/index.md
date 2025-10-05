@@ -38,14 +38,6 @@ To test this hypothesis, we conduct three complementary nationally representativ
 
 <div style="overflow:auto;">
 
-<img src="assets/specification_curve.png" 
-     alt="Linear models of Studies 1 and 2" 
-     style="float:left; width:auto; height:auto; max-width:375px; margin:0 1em 0.25em 0;">
-
-<div style="float:left; clear:left; font-size:0.85em; color:#555; font-style:italic; margin:0 1em 1em 0;">
-  Linear models of Studies 1 and 2
-</div>
-
 <p>
 The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, we show that those who believe the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. In Study 1, a nationally representative sample of Americans (N = 1,188) listed the guiding values of the U.S. on paper and the guiding values of the U.S. in practice. The linguistic distance between the two lists in semantic space was positively associated with political discontent. In Study 2 (N = 994), participants rated the government on the eight overarching values of the U.S. on paper that were derived from a computational clustering of Study 1 responses. Again, those who believed the government is not delivering on its founding promise were more likely to display political discontent. In Study 3 (N = 1,823), a novel experimental paradigm isolated the causal effect of a broken social contract on political discontent: prompting participants to reflect on the U.S. not delivering on its promise increased anti-establishment sentiment and support for radical change.
 </p>
@@ -84,6 +76,15 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
       EXPLORE OLS MODELS ↗
     </a>
   </p>
+</div>
+
+<div style="clear:both; margin:16px 0 24px;">
+  <img src="assets/specification_curve.png" 
+       alt="Linear models of Studies 1 and 2"
+       style="display:block; width:100%; max-width:900px; height:auto; margin:0 auto;">
+  <div style="text-align:center; font-size:0.85em; color:#555; font-style:italic; margin-top:6px;">
+    Specification Curve. Linear models of Studies 1 and 2
+  </div>
 </div>
 
 ## Dimension reduction
