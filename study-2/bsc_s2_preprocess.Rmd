@@ -79,7 +79,8 @@ ethnicity
 
 ```{r}
 df_bsc <- df_bsc %>% 
-  mutate(hispanic = ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0))
+  mutate(hispanic = ifelse(is.na(race_2),0,
+                           ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0)))
 ```
 
 fix race
@@ -97,7 +98,8 @@ df_bsc <- df_bsc %>%
          race_num_8 = ifelse(race_8 != "",1,0),
          race_num = race_num_1 + race_num_3 + race_num_4 + race_num_5 + race_num_6 + race_num_7 + race_num_8,
          race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_3,race_4,race_5,race_6,race_7,race_8)),
-         race = ifelse(race == "",NA,race))
+         race = ifelse(race == "",NA,race),
+         white = ifelse(race == "White",1,0))
 ```
 
 gender
@@ -164,7 +166,8 @@ attention check
 
 ```{r}
 df_bsc <- df_bsc %>% 
-  mutate(check_1 = ifelse(check != 5 | is.na(check),1,0))
+  mutate(check_1 = ifelse(check != 5 | is.na(check),1,0),
+         is_elg = ifelse(check_1 == 1,0,1))
 ```
 
 rename
@@ -218,7 +221,13 @@ df_bsc <- df_bsc %>%
   mutate(vote_2024_trump = ifelse(vote_2024 == "Donald Trump",1,0),
          vote_2024_biden = ifelse(vote_2024 == "Joe Biden",1,0),
          vote_2024_rfkj = ifelse(vote_2024 == "Robert F. Kennedy Jr.",1,0),
-         vote_2024_other = ifelse(vote_2024 == "Other",1,0))
+         vote_2024_other = ifelse(vote_2024 == "Other",1,0),
+         republican = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Republican",1,0)),
+         democrat = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Democrat",1,0)),
+         independent = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Independent",1,0)))
 ```
 
 create long df for value scores and weights
@@ -305,9 +314,10 @@ df_bsc <- df_bsc %>%
                 TIPI_3,TIPI_8R,
                 TIPI_4,TIPI_9R,
                 TIPI_5,TIPI_10R,
-                check_1,
+                is_elg,
                 ideo_con:ideo_prog,
                 party_id,
+                republican:independent,
                 vote_2020,
                 vote_2024,
                 vote_2024_trump:vote_2024_other,
@@ -316,6 +326,7 @@ df_bsc <- df_bsc %>%
                 edu,
                 edu_num,
                 race,
+                white,
                 hispanic,
                 age,
                 gender,
@@ -329,7 +340,12 @@ df_bsc <- df_bsc %>%
 write csv
 
 ```{r}
-write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/May 2024/data/df_bsc.csv",row.names = F)
-write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/May 2024/data/df_bsc_long.csv",row.names = F)
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc.csv",row.names = F)
+write.csv(df_bsc %>% filter(is_elg == 1),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_elg.csv",row.names = F)
+
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_long.csv",row.names = F)
+write.csv(df_bsc_long %>% filter(PID %in% elg_PIDs),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_long_elg.csv",row.names = F)
 ```
 
