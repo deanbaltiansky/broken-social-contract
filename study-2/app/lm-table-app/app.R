@@ -71,7 +71,7 @@ ui <- fluidPage(
       tags$h4("Notes"),
       tags$p("• Only variables listed in var_info.csv (and present in the data) are available."),
       tags$p("• If a moderator is chosen, the model includes main effects and the interaction (X × Z)."),
-      tags$p("• Data were collected in March 2024. Therefore, voting variables indicate voting intentions, rather than voting behavior."),
+      tags$p("• Data were collected in May 2024. Therefore, voting variables indicate voting intentions, rather than voting behavior."),
       uiOutput("mod_note")
     )
   )

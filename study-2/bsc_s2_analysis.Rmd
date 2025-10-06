@@ -1238,27 +1238,123 @@ kbl(apa_lm$table) %>%
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
+
 ```
 
-
+## Identifying the driving values
 
 ```{r,include=FALSE}
-df_bsc_weightedscores <- df_bsc_long_elg %>% 
-  filter(type == "paper") %>% 
-  select(PID,value,weighted_score) %>% 
-  pivot_wider(names_from = value,
-              values_from = weighted_score) %>% 
-  mutate(democracy_z = scale(democracy),
-         equality_z = scale(equality),
-         freedom_z = scale(freedom),
-         individualism_z = scale(individualism),
-         justice_z = scale(justice),
-         happiness_z = scale(happiness),
-         arms_z = scale(arms),
-         tolerance_z = scale(tolerance))
+#setup
+value_cols <- c("democracy","equality","freedom","individualism",
+                "justice","happiness","arms","tolerance")
 
-df_bsc_elg <- df_bsc_elg %>% 
-  left_join(df_bsc_weightedscores,by = "PID")
+control_vars <- c(
+  "ideo_con_z","SDO_z","TIPI_agree_z","man","white","hispanic",
+  "income_num_z","edu_num_z","age_z",
+  "county_medianincome_z","county_gini_z","county_density_z"
+)
+
+outcome_vars <- c("antiest_z","change_z","trust_deminst_z","trust_natinst_z")
+
+df_wide <- df_bsc_long_elg %>%
+  filter(type == "paper") %>% 
+  select(PID,value,weighted_score) %>%
+  pivot_wider(names_from = value,
+              values_from = weighted_score)
+
+df_formodels <- df_bsc_elg %>% 
+  select(PID,all_of(outcome_vars),all_of(control_vars)) %>% 
+  left_join(df_wide,by = "PID") %>% 
+  drop_na(all_of(c(outcome_vars,control_vars)))
+  
+X_all <- c(value_cols, control_vars)
+```
+
+### Relative importance (Shapley)
+
+We used relative importance (lmg/Shapley decomposition) to partition the explained variance in each outcome across the eight weighted value scores, while controlling for demographics and other covariates. This approach re-expresses the model’s R^2 in terms of the proportional contribution of each value, providing a clear indication of which values drive the overall effect of “broken promises.” By normalizing shares among the eight values, we highlight the relative weight of each value net of controls.
+
+```{r,include=FALSE}
+library(relaimpo)
+library(glmnet)
+library(broom)
+
+run_option_A <- function(outcome,
+                         df_formodels,
+                         value_cols,
+                         control_vars,
+                         boot_iter = 300,
+                         seed = 20251006) {
+  # OLS with values + controls
+  ols_formula <- as.formula(
+    paste(outcome, "~", paste(c(value_cols, control_vars), collapse = " + "))
+  )
+  m_ols <- lm(ols_formula, data = df_formodels)
+
+  # Relative importance (lmg) with CIs
+  set.seed(seed)
+  ri_boot <- boot.relimp(m_ols, b = boot_iter, type = "lmg", rela = TRUE)
+  ri_ci   <- booteval.relimp(ri_boot)
+
+  # Re-normalize to shares AMONG VALUES ONLY (controls remain in model)
+  lmg_tbl <- tibble(
+    predictor = names(ri_ci$lmg),
+    lmg       = ri_ci$lmg,
+    lmg_lo    = ri_ci$lower,
+    lmg_hi    = ri_ci$upper
+  )
+
+  values_lmg <- lmg_tbl %>% filter(predictor %in% value_cols)
+  s <- sum(values_lmg$lmg)
+  ri_values_table <- values_lmg %>%
+    mutate(
+      lmg_share_among_values = lmg / s,
+      lmg_lo_among_values    = lmg_lo / s,
+      lmg_hi_among_values    = lmg_hi / s
+    ) %>%
+    arrange(desc(lmg_share_among_values))
+
+  list(
+    outcome = outcome,
+    lm_summary = broom::tidy(m_ols),
+    ri_values_table = ri_values_table   # % share among values (with CIs)
+  )
+}
+
+res_A_antiest <- run_option_A("antiest_z", df_formodels, value_cols, control_vars, boot_iter = 1)
+res_A_change  <- run_option_A("change_z", df_formodels, value_cols, control_vars, boot_iter = 100)
+res_A_tdem    <- run_option_A("trust_deminst_z", df_formodels, value_cols, control_vars, boot_iter = 100)
+res_A_tnat    <- run_option_A("trust_natinst_z", df_formodels, value_cols, control_vars, boot_iter = 100)
+
+res_A_antiest$ri_values_table %>% print(n = 8)
+```
+
+```{r}
+
+
+# Run across outcomes
+
+results <- purrr::map(outcome_vars, analyze_outcome,
+                      df_formodels = df_formodels,
+                      value_cols = value_cols,
+                      control_vars = control_vars,
+                      unpenalize_controls = TRUE) %>%
+  purrr::set_names(outcome_vars)
+
+# Example: peek at a specific table
+results$antiest_z$optionA$ri_values_table
+results$antiest_z$optionB$lasso$coefs
+
+# (Optional) Make a quick summary per outcome: top 3 drivers by relative-importance share
+top3 <- purrr::map_df(results, function(res) {
+  res$optionA$ri_values_table %>%
+    slice_max(lmg_share_among_values, n = 3) %>%
+    mutate(outcome = res$outcome) %>%
+    select(outcome, predictor, lmg_share_among_values, lmg_lo_among_values, lmg_hi_among_values)
+}, .id = "outcome_check")
+
+top3
 
 ```
+
 
