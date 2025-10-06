@@ -871,7 +871,7 @@ df_bsc_elg %>%
   </a>\
 \
 
-Broken promise score, personal disappointment score, support for radical change, anti-establishment sentiment, trust in democratic institutions, trust in mainstream societal institutions, conservatism, SDO, TIPI extraversion, TIPI agreeableness, TIPI Conscientiousness, TIPI neuroticism, TIPI openness.
+Broken promise score, personal disappointment score, support for radical change, anti-establishment sentiment, trust in democratic institutions, trust in mainstream societal institutions, conservatism, SDO, TIPI extroversion, TIPI agreeableness, TIPI Conscientiousness, TIPI neuroticism, TIPI openness.
 
 ```{r,fig.align='left',echo=TRUE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
 df_bsc_elg %>% 
