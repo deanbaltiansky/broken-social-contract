@@ -350,3 +350,79 @@ write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/for github/broke
 write.csv(df_bsc_long %>% filter(PID %in% elg_PIDs),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_long_elg.csv",row.names = F)
 ```
 
+create csv for shiny app that breaks down contracts by different dimensions
+
+```{r}
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+df <- df_bsc_long %>% 
+  filter(PID %in% elg_PIDs) %>% 
+  filter(type == "paper") %>% 
+  select(PID,value,weight,weighted_score)
+
+
+#regions
+northeast_newengland <- c("Connecticut","Maine","Massachusetts","New Hampshire","Rhode Island","Vermont")
+northeast_midatlantic <- c("New Jersey","New York","Pennsylvania")
+midwest_eastnorthcentral <- c("Illinois","Indiana","Michigan","Ohio","Wisconsin")
+midwest_westnorthcentral <- c("Iowa","Kansas","Minnesota","Missouri","Nebraska","North Dakota","South Dakota")
+south_southatlantic <- c("Delaware","District of Columbia","Florida","Georgia","Maryland","North Carolina","South Carolina","Virginia","West Virginia")
+south_eastsouthcentral <- c("Alabama","Kentucky","Mississippi","Tennessee")
+south_westsouthcentral <- c("Arkansas","Louisiana","Oklahoma","Texas")
+west_mountain <- c("Arizona","Colorado","Idaho","Montana","Nevada","New Mexico","Utah","Wyoming")
+west_pacific <- c("Alaska","California","Hawaii","Oregon","Washington")
+
+df_peronal <- df_bsc %>%  
+  filter(is_elg == 1) %>% 
+  select(PID,TIPI_extra:TIPI_open,ideo_con:ideo_prog,party_id,income_num,edu,race,hispanic,age,gender,state) %>% 
+  mutate_at(vars(TIPI_extra:TIPI_open),function(x){scale(x)}) %>% 
+  mutate_at(vars(TIPI_extra:TIPI_open),function(x){case_when(x >= 1 ~ "high",
+                                                             x < 1 & x > -1 ~ "mid",
+                                                             x <= -1 ~ "low",
+                                                             .default = NA)}) %>% 
+  mutate_at(vars(ideo_con:ideo_prog),function(x){replace_na(x,0)}) %>% 
+  mutate_at(vars(ideo_con:ideo_prog),function(x){ifelse(x > 4,1,0)}) %>% 
+  mutate(income = case_when(income_num < 4 ~ "under $60k",
+                            income_num >= 4 & income_num < 7 ~ "$60k-$120k",
+                            income_num >= 7 ~ "over $120k",
+                            .default = NA)) %>% 
+  mutate(edu = case_when(edu %in% c("noHS","GED","2yearColl") ~ "no college",
+                         edu %in% c("4yearColl","MA","PHD") ~ "with college",
+                         .default = NA)) %>% 
+  mutate(race_eth = case_when(is.na(race) & hispanic == 1 ~ "hispanic",
+                          race == "White" & hispanic == 0 ~ "non-hispanic white",
+                          race == "Asian" & hispanic == 0 ~ "non-hispanic asian",
+                          race == "Black or African American" & hispanic == 0 ~ "non-hispanic black",
+                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 0 ~ "non-hispanic other",
+                          race == "White" & hispanic == 1 ~ "hispanic white",
+                          race == "Asian" & hispanic == 1 ~ "hispanic asian",
+                          race == "Black or African American" & hispanic == 1 ~ "hispanic black",
+                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 1 ~ "hispanic other",
+                          race == "multiracial" ~ "multiracial",
+                          .default = NA)) %>% 
+  mutate(age = case_when(age <= 24 ~ "18-24",
+                         age >= 25 & age <= 34 ~ "25-34",
+                         age >= 35 & age <= 44 ~ "35-44",
+                         age >= 45 & age <= 54 ~ "45-54",
+                         age >= 55 & age <= 64 ~ "55-64",
+                         age >= 65 & age <= 74 ~ "65-74",
+                         age >= 75 ~ "75+",
+                         .default = NA)) %>% 
+  mutate(region = case_when(state %in% northeast_midatlantic ~ "northeast - middle atlantic",
+                            state %in% northeast_newengland ~ "northeast - new england",
+                            state %in% midwest_eastnorthcentral ~ "midwest - east north cnetral",
+                            state %in% midwest_westnorthcentral ~ "midwest - west north central",
+                            state %in% south_southatlantic ~ "south - south atlantic",
+                            state %in% south_eastsouthcentral ~ "south - east south central",
+                            state %in% south_westsouthcentral ~ "south - west south central",
+                            state %in% west_mountain ~ "west - mountain",
+                            state %in% west_pacific ~ "west - pacific",
+                            .default = NA)) %>% 
+  select(PID:party_id,edu,income,age,race_eth,gender,region,state)
+
+df_forapp <- df %>% 
+  left_join(df_peronal,by = "PID")
+
+write.csv(df_forapp,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_longforapp.csv",row.names = F)
+```
+

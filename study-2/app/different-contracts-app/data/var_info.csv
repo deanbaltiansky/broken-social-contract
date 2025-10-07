@@ -1,0 +1,19 @@
+var,label,description
+TIPI_extra,Extroversion,high = above +1SD; mid = between -1SD and +1SD; low = under -1SD
+TIPI_agree,Agreeableness,high = above +1SD; mid = between -1SD and +1SD; low = under -1SD
+TIPI_consc,Conscientiousness,high = above +1SD; mid = between -1SD and +1SD; low = under -1SD
+TIPI_neuro,Neuroticism,high = above +1SD; mid = between -1SD and +1SD; low = under -1SD
+TIPI_open,Openness,high = above +1SD; mid = between -1SD and +1SD; low = under -1SD
+ideo_con,Ideology: Conservative,1 = those above scale midpoint; 0 = those under scale midpoint and NA
+ideo_lib,Ideology: Liberal,1 = those above scale midpoint; 0 = those under scale midpoint and NA
+ideo_demsoc,Ideology: Democratic Socialist,1 = those above scale midpoint; 0 = those under scale midpoint and NA
+ideo_lbrtn,Ideology: Libertarian,1 = those above scale midpoint; 0 = those under scale midpoint and NA
+ideo_prog,Ideology: Progressive,1 = those above scale midpoint; 0 = those under scale midpoint and NA
+party_id,Political Party,"Identification as: Republican, Democrat, Independent"
+edu,Education,with college vs. no college
+income,Income,"under $60k, $60k-$120k, over $120k"
+age,Age,Census age brackets
+race_eth,Race & Ethnicity,Race and ethnicity
+gender,Gender,
+region,Region,US Census classification of US subregions (https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf)
+state,State,U.S. State
