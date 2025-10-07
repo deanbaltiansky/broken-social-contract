@@ -198,6 +198,7 @@ county data
 
 ```{r}
 df_bsc <- df_bsc %>% 
+  mutate(state = ifelse(state == "Louisana","Louisiana",state)) %>% 
   left_join(county_data,by = c("state","county"))
 ```
 
