@@ -1270,9 +1270,9 @@ df_formodels <- df_bsc_elg %>%
 X_all <- c(value_cols, control_vars)
 ```
 
-### Relative importance (Shapley)
+### LMG Shapley Decomposition
 
-We used relative importance (lmg/Shapley decomposition) to partition the explained variance in each outcome across the eight weighted value scores, while controlling for demographics and other covariates. This approach re-expresses the model’s R^2 in terms of the proportional contribution of each value, providing a clear indication of which values drive the overall effect of “broken promises.” By normalizing shares among the eight values, we highlight the relative weight of each value net of controls.
+We use LMG Shapley Decomposition to determine the relative variance explained by each component (weighted overarching value) of the broken promise composite, while controlling for the same variables as the ones in the preregistered models. This approach identifies each model's $R^2$ in terms of the proportional contribution of each value, providing a clear indication of which values drive the overall effect of a broken promise. We can do this for each of the four outcome variables for which we observed an effect of the composite broken promise score (anti-establishment sentiment, support for radical change, trust in democratic political institutions, and trust in non-political mainstream institutions).
 
 ```{r,include=FALSE}
 library(relaimpo)
@@ -1283,50 +1283,64 @@ run_option_A <- function(outcome,
                          df_formodels,
                          value_cols,
                          control_vars,
-                         boot_iter = 300,
+                         boot_iter = 100,
                          seed = 20251006) {
+
   # OLS with values + controls
   ols_formula <- as.formula(
     paste(outcome, "~", paste(c(value_cols, control_vars), collapse = " + "))
   )
   m_ols <- lm(ols_formula, data = df_formodels)
 
-  # Relative importance (lmg) with CIs
-  set.seed(seed)
-  ri_boot <- boot.relimp(m_ols, b = boot_iter, type = "lmg", rela = TRUE)
-  ri_ci   <- booteval.relimp(ri_boot)
+  # Point estimates (fast, no boot)
+  ri_fast <- relaimpo::calc.relimp(m_ols, type = "lmg", rela = TRUE)
 
-  # Re-normalize to shares AMONG VALUES ONLY (controls remain in model)
-  lmg_tbl <- tibble(
-    predictor = names(ri_ci$lmg),
-    lmg       = ri_ci$lmg,
-    lmg_lo    = ri_ci$lower,
-    lmg_hi    = ri_ci$upper
-  )
+  # Normalize to shares among VALUES ONLY
+  vals <- ri_fast$lmg[names(ri_fast$lmg) %in% value_cols]
+  s <- sum(vals)
+  ri_values_table <- tibble::tibble(
+    predictor = names(vals),
+    lmg_share_among_values = as.numeric(vals) / s,
+    lmg_lo_among_values = NA_real_,
+    lmg_hi_among_values = NA_real_
+  ) %>% arrange(desc(lmg_share_among_values))
 
-  values_lmg <- lmg_tbl %>% filter(predictor %in% value_cols)
-  s <- sum(values_lmg$lmg)
-  ri_values_table <- values_lmg %>%
-    mutate(
-      lmg_share_among_values = lmg / s,
-      lmg_lo_among_values    = lmg_lo / s,
-      lmg_hi_among_values    = lmg_hi / s
-    ) %>%
-    arrange(desc(lmg_share_among_values))
+  # Only compute CIs if boot_iter is reasonably large
+  if (boot_iter >= 20) {
+    set.seed(seed)
+    ri_boot <- relaimpo::boot.relimp(m_ols, b = boot_iter, type = "lmg", rela = TRUE)
+    ri_ci   <- relaimpo::booteval.relimp(ri_boot)
+
+    lmg_tbl <- tibble::tibble(
+      predictor = names(ri_ci$lmg),
+      lmg       = ri_ci$lmg,
+      lmg_lo    = ri_ci$lower,
+      lmg_hi    = ri_ci$upper
+    ) %>% dplyr::filter(predictor %in% value_cols)
+
+    s2 <- sum(lmg_tbl$lmg)
+    ri_values_table <- lmg_tbl %>%
+      dplyr::mutate(
+        lmg_share_among_values = lmg / s2,
+        lmg_lo_among_values    = lmg_lo / s2,
+        lmg_hi_among_values    = lmg_hi / s2
+      ) %>%
+      dplyr::select(predictor, lmg_share_among_values, lmg_lo_among_values, lmg_hi_among_values) %>%
+      dplyr::arrange(dplyr::desc(lmg_share_among_values))
+  }
 
   list(
     outcome = outcome,
     lm_summary = broom::tidy(m_ols),
-    ri_values_table = ri_values_table   # % share among values (with CIs)
+    ri_values_table = ri_values_table
   )
 }
 
-res_A_antiest <- run_option_A("antiest_z", df_formodels, value_cols, control_vars, boot_iter = 1)
-res_A_change  <- run_option_A("change_z", df_formodels, value_cols, control_vars, boot_iter = 100)
-res_A_tdem    <- run_option_A("trust_deminst_z", df_formodels, value_cols, control_vars, boot_iter = 100)
-res_A_tnat    <- run_option_A("trust_natinst_z", df_formodels, value_cols, control_vars, boot_iter = 100)
 
-res_A_antiest$ri_values_table %>% print(n = 8)
+res_A_antiest <- run_option_A("antiest_z", df_formodels, value_cols, control_vars, boot_iter = 300)
+res_A_change  <- run_option_A("change_z", df_formodels, value_cols, control_vars, boot_iter = 300)
+res_A_tdem    <- run_option_A("trust_deminst_z", df_formodels, value_cols, control_vars, boot_iter = 300)
+res_A_tnat    <- run_option_A("trust_natinst_z", df_formodels, value_cols, control_vars, boot_iter = 300)
 ```
 
 ```{r}
