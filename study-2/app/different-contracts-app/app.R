@@ -1,8 +1,9 @@
 # study-2/app/different-contracts-app/app.R
 library(shiny)
+library(dplyr)
 
 # -----------------------------
-# Data loaders (shinylive-safe)
+# Data loaders
 # -----------------------------
 load_data <- function() {
   p <- "data/df_bsc_longforapp.csv"
@@ -28,14 +29,7 @@ load_var_info <- function() {
 # Helpers
 # -----------------------------
 count_people <- function(df_sub) {
-  if ("PID" %in% names(df_sub)) {
-    return(length(unique(df_sub$PID)))
-  }
-  # fallback heuristic (shouldn't be needed now)
-  if ("value" %in% names(df_sub)) {
-    denom <- length(unique(df_sub$value))
-    if (is.finite(denom) && denom > 0) return(as.integer(round(nrow(df_sub) / denom)))
-  }
+  if ("PID" %in% names(df_sub)) return(length(unique(df_sub$PID)))
   as.integer(nrow(df_sub))
 }
 
@@ -49,27 +43,25 @@ pretty_desc <- function(var, var_info) {
   ifelse(is.na(ds) | !nzchar(ds), "", ds)
 }
 
-# Ensure we have expected columns in the long data
-build_value_table <- function(df_sub) {
-  nm <- tolower(names(df_sub))
-  vcol <- names(df_sub)[match("value", nm)]
-  wcol <- names(df_sub)[match("weight", nm)]
-  dcol <- names(df_sub)[match("weighted_score", nm)]
-  if (any(is.na(c(vcol, wcol, dcol)))) {
-    stop("Expected columns value, weight, weighted_score not all found in df_bsc_longforapp.csv")
-  }
-  out <- df_sub[, c(vcol, wcol, dcol)]
-  names(out) <- c("Value", "Perceived Promise", "Perceived Delivery")
-  out <- out[order(tolower(out$Value)), , drop = FALSE]
-  rownames(out) <- NULL
-  out
+# Summary table builder
+summarize_values <- function(df_sub) {
+  df_sub %>%
+    group_by(value) %>%
+    summarise(
+      `Perceived Promise` = mean(weight, na.rm = TRUE),
+      `Perceived Delivery` = mean(weighted_score, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    mutate(Value = value) %>%
+    select(Value, `Perceived Promise`, `Perceived Delivery`) %>%
+    arrange(tolower(Value))
 }
 
 # -----------------------------
 # UI
 # -----------------------------
 ui <- fluidPage(
-  titlePanel("Different Contracts for Different people"),
+  titlePanel("Different Contracts for Different People"),
   tags$p(
     "In this app, you can explore how different sub-populations of the American public see the social contract. ",
     "Specifically, you can see what different groups believe the U.S.'s promise is on paper, and right next to it, ",
@@ -79,13 +71,13 @@ ui <- fluidPage(
   ),
   sidebarLayout(
     sidebarPanel(
-      helpText("Choose a characteristic to break out the tables:"),
+      helpText("Choose a characteristic to break out the summary tables:"),
       selectInput("groupvar", "Break down by", choices = NULL),
       uiOutput("state_picker"),
       tags$hr(),
       helpText("Notes:"),
-      tags$p("• Each table shows eight overarching values (alphabetically)."),
-      tags$p("• Columns: Value, Perceived Promise (weights), Perceived Delivery (weighted scores).")
+      tags$p("• Each table shows average perceived promise and delivery for each of the eight values."),
+      tags$p("• Numbers represent group means across respondents.")
     ),
     mainPanel(
       uiOutput("tables_ui"),
@@ -116,7 +108,7 @@ server <- function(input, output, session) {
   choices <- as.list(present_allowed); names(choices) <- labels
   updateSelectInput(session, "groupvar", choices = choices, selected = present_allowed[1])
   
-  # State multi-select widget
+  # state multi-select
   output$state_picker <- renderUI({
     req(input$groupvar)
     if (identical(input$groupvar, "state")) {
@@ -124,18 +116,16 @@ server <- function(input, output, session) {
       selectizeInput("states", "States to show", choices = states, multiple = TRUE,
                      options = list(plugins = list("remove_button"),
                                     placeholder = "Select one or more states"))
-    } else {
-      NULL
-    }
+    } else NULL
   })
   
-  # Description for chosen variable
+  # variable description
   output$chosen_desc <- renderText({
     req(input$groupvar)
     pretty_desc(input$groupvar, var_info)
   })
   
-  # Build UI blocks per subgroup (table + plot)
+  # main output
   output$tables_ui <- renderUI({
     req(input$groupvar)
     grp <- input$groupvar
@@ -145,93 +135,73 @@ server <- function(input, output, session) {
       validate(need(length(levs) >= 1, "Select at least one state to display tables."))
     } else {
       levs <- sort(unique(na.omit(as.character(df0[[grp]]))))
-      validate(need(length(levs) >= 1, "No categories found for the selected variable."))
     }
     
-    # One wellPanel per level
     out_list <- lapply(seq_along(levs), function(i) {
       lv <- levs[i]
-      df_sub <- df0[which(as.character(df0[[grp]]) == lv), , drop = FALSE]
-      vt <- build_value_table(df_sub)
+      df_sub <- df0[df0[[grp]] == lv, , drop = FALSE]
       n_people <- count_people(df_sub)
+      df_sum <- summarize_values(df_sub)
       
-      # dynamic ids
-      tbl_id  <- paste0("tbl_",  i)
+      tbl_id  <- paste0("tbl_", i)
       plot_id <- paste0("plot_", i)
       
       wellPanel(
-        tags$h4(paste0(pretty_label(grp, var_info), ": ", lv, "  —  N = ", n_people)),
-        tableOutput(outputId = tbl_id),
-        tags$div(style = "height:12px;"),  # small spacer
-        plotOutput(outputId = plot_id, height = "300px")
+        tags$h4(paste0(pretty_label(grp, var_info), ": ", lv, " — N = ", n_people)),
+        tableOutput(tbl_id),
+        tags$div(style="height:12px;"),
+        plotOutput(plot_id, height="300px")
       )
     })
     
-    # Register renderers for each level (table + plot)
+    # register outputs
     for (i in seq_along(levs)) {
       local({
         idx <- i
         lv  <- levs[idx]
-        df_sub <- df0[which(as.character(df0[[grp]]) == lv), , drop = FALSE]
-        vt <- build_value_table(df_sub)
+        df_sub <- df0[df0[[grp]] == lv, , drop = FALSE]
+        df_sum <- summarize_values(df_sub)
         
-        # -- Table render (formatted decimals for numeric cols) --
-        fmt <- vt
-        num_cols <- names(fmt)[sapply(fmt, is.numeric)]
-        for (cn in num_cols) fmt[[cn]] <- sprintf("%.3f", fmt[[cn]])
-        output[[paste0("tbl_", idx)]] <- renderTable(
-          fmt,
-          striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s"
-        )
+        # Table
+        output[[paste0("tbl_", idx)]] <- renderTable({
+          df_sum %>%
+            mutate(
+              `Perceived Promise` = sprintf("%.3f", `Perceived Promise`),
+              `Perceived Delivery` = sprintf("%.3f", `Perceived Delivery`)
+            )
+        }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s")
         
-        # -- Plot render (horizontal grouped bars, Promise vs Delivery) --
+        # Plot
         output[[paste0("plot_", idx)]] <- renderPlot({
-          # Use unformatted numeric data for plotting
-          vals   <- vt$Value
-          prom   <- suppressWarnings(as.numeric(vt[["Perceived Promise"]]))
-          deliv  <- suppressWarnings(as.numeric(vt[["Perceived Delivery"]]))
+          vals <- df_sum$Value
+          prom <- df_sum$`Perceived Promise`
+          del  <- df_sum$`Perceived Delivery`
           
-          # Handle all-NA edge cases gracefully
-          if (all(is.na(prom)) && all(is.na(deliv))) {
-            plot.new()
-            title(main = "No numeric data to plot")
-            return(invisible(NULL))
+          if (all(is.na(prom)) && all(is.na(del))) {
+            plot.new(); title("No numeric data to plot"); return()
           }
-          prom[is.na(prom)]  <- 0
-          deliv[is.na(deliv)] <- 0
           
-          M <- rbind(Promise = prom, Delivery = deliv)
+          M <- rbind(Promise = prom, Delivery = del)
+          cols <- c("#4C78A8", "#F58518")
           
-          # Make sure labels have room on the left
           oldpar <- par(no.readonly = TRUE)
           on.exit(par(oldpar), add = TRUE)
-          par(mar = c(4, 10, 2, 2))  # bottom, left, top, right
+          par(mar = c(4, 10, 2, 2))
+          xlim <- range(0, M, na.rm = TRUE)
           
-          # Choose a sensible xlim to fit both series
-          xmax <- max(M, na.rm = TRUE)
-          xmin <- min(M, na.rm = TRUE)
-          if (!is.finite(xmin)) xmin <- 0
-          if (!is.finite(xmax)) xmax <- 1
-          xlim <- range(0, xmin, xmax)  # include 0 for reference
-          
-          # Colors & legend
-          cols <- c("#4C78A8", "#F58518")  # blue for Promise, orange for Delivery
-          
-          bp <- barplot(
+          barplot(
             M,
             beside = TRUE,
-            horiz  = TRUE,
+            horiz = TRUE,
             names.arg = vals,
-            las = 1,            # horizontal y-axis labels
+            las = 1,
             xlim = xlim,
-            col  = cols,
+            col = cols,
             border = NA,
             cex.names = 0.9
           )
-          
           grid(col = "#eaeaea")
-          legend("bottomright",
-                 legend = c("Perceived Promise", "Perceived Delivery"),
+          legend("bottomright", legend = c("Perceived Promise", "Perceived Delivery"),
                  fill = cols, bty = "n", cex = 0.9, inset = 0.02)
         })
       })
