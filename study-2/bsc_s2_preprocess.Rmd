@@ -426,3 +426,54 @@ df_forapp <- df %>%
 write.csv(df_forapp,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_longforapp.csv",row.names = F)
 ```
 
+for models
+
+```{r}
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+control_vars <- c(
+  "ideo_con_z","SDO_z","TIPI_agree_z","man","white","hispanic",
+  "income_num_z","edu_num_z","age_z",
+  "county_medianincome_z","county_gini_z","county_density_z"
+)
+
+outcome_vars <- c("antiest_z","change_z","trust_deminst_z","trust_natinst_z")
+
+df_wide <- df_bsc_long %>%
+  filter(PID %in% elg_PIDs) %>% 
+  filter(type == "paper") %>% 
+  select(PID,value,weighted_score) %>%
+  pivot_wider(names_from = value,
+              values_from = weighted_score)
+
+df_formodels <- df_bsc %>% 
+  filter(is_elg == 1) %>% 
+  mutate(brokenpromise_z = scale(brokenpromise),
+         personaldisappoint_z = scale(personaldisappoint),
+         promisekept_z = scale(promisekept),
+         idealkept_z = scale(idealkept),
+         vote_likely_z = scale(vote_likely),
+         change_z = scale(change),
+         antiest_z = scale(antiest),
+         trust_deminst_z = scale(trust_deminst),
+         trust_natinst_z = scale(trust_natinst),
+         ideo_con_z = scale(ideo_con),
+         ideo_lib_z = scale(ideo_lib),
+         ideo_demsoc_z = scale(ideo_demsoc),
+         ideo_lbrtn_z = scale(ideo_lbrtn),
+         ideo_prog_z = scale(ideo_prog),
+         SDO_z = scale(SDO),
+         TIPI_agree_z = scale(TIPI_agree),
+         income_num_z = scale(income_num),
+         edu_num_z = scale(edu_num),
+         age_z = scale(age),
+         county_density_z = scale(as.numeric(county_density)),
+         county_gini_z = scale(as.numeric(county_gini)),
+         county_medianincome_z = scale(as.numeric(county_medianincome))) %>% 
+  select(PID,all_of(outcome_vars),all_of(control_vars)) %>% 
+  left_join(df_wide,by = "PID") %>% 
+  drop_na(all_of(c(outcome_vars,control_vars)))
+
+write.csv(df_formodels,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_formodels.csv",row.names = F)
+```
+

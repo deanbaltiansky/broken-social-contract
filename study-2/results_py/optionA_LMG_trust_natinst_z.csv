@@ -1,0 +1,9 @@
+predictor,share_among_values,n,outcome
+justice,0.4074109635868485,808,trust_natinst_z
+democracy,0.2730663399026324,808,trust_natinst_z
+equality,0.11994092893396079,808,trust_natinst_z
+freedom,0.10179362500284932,808,trust_natinst_z
+happiness,0.05053019417988935,808,trust_natinst_z
+arms,0.032028055590470735,808,trust_natinst_z
+tolerance,0.014603927252612543,808,trust_natinst_z
+individualism,0.000625965550736299,808,trust_natinst_z

@@ -1,0 +1,9 @@
+predictor,coef,selected,alpha,model,outcome,n
+democracy,-0.13618054237895358,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+equality,0.0458326980787112,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+freedom,-0.14625980571542874,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+individualism,0.0,False,0.007390678778748866,lasso_unpen_controls,change_z,808
+justice,-0.13797535891236481,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+happiness,-0.11158022551758703,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+arms,0.015324042342613139,True,0.007390678778748866,lasso_unpen_controls,change_z,808
+tolerance,-0.11138167807940139,True,0.007390678778748866,lasso_unpen_controls,change_z,808

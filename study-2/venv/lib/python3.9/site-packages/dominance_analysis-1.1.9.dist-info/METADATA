@@ -1,0 +1,38 @@
+Metadata-Version: 2.1
+Name: dominance-analysis
+Version: 1.1.9
+Summary: Dominance Analysis
+Home-page: https://github.com/bhagatsajan0073/dominance_analysis
+Author: Sajan Kumar Bhagat, Kunjithapatham Sivakumar, Shashank Shekhar,Bala Koteshwar Kolluri
+Author-email: bhagat.sajan0073@gmail.com, s.vibish@gmail.com, quintshekhar@gmail.com, balakoteshwar@gmail.com
+Maintainer: Sajan Kumar Bhagat, Kunjithapatham Sivakumar, Shashank Shekhar, Bala Koteshwar Kolluri
+Maintainer-email: bhagat.sajan0073@gmail.com, s.vibish@gmail.com, quintshekhar@gmail.com, balakoteshwar@gmail.com
+License: MIT
+Keywords: Dominance Analysis,Feature Importance,Feature Selection
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: seaborn
+Requires-Dist: matplotlib
+Requires-Dist: scikit-learn
+Requires-Dist: tqdm
+Requires-Dist: plotly
+Requires-Dist: cufflinks
+Requires-Dist: statsmodels
+Requires-Dist: ipywidgets
+Requires-Dist: bokeh (==2.4.3)
+Requires-Dist: scipy
+Requires-Dist: nbformat
+
+Dominance Analysis Package
+
+This package can be used for dominance analysis or Shapley Value Regression for finding relative importance of predictors on given dataset. This library can be used for key driver analysis or marginal resource allocation models.
+
+Please follow github repository for the detailed description [here](https://dominance-analysis.github.io/dominance-analysis) and the official documentation [here](https://dominance-analysis.readthedocs.io/en/latest/index.html).

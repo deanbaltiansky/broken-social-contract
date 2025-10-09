@@ -1,0 +1,9 @@
+predictor,coef,alpha,model,outcome,n
+democracy,0.1553263187884829,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+equality,0.09013582192949161,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+freedom,0.09767985980006065,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+individualism,0.00044757975035093073,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+justice,0.18862904280041548,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+happiness,0.0970161522823749,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+arms,-0.0686390156952225,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
+tolerance,0.04283422557849047,240.9403560239527,ridge_unpen_controls,trust_deminst_z,808
