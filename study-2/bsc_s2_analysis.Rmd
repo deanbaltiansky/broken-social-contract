@@ -890,7 +890,7 @@ Here, I report the preregistered analyses (all variables are z-scored). Feel fre
   </a>
 
 
-### DV: Antiestablishment Sentiment
+### DV: Antiestablishment sentiment
 
 #### Model 1\
 \
@@ -1244,203 +1244,206 @@ kbl(apa_lm$table) %>%
 ## Identifying the driving values
 
 ```{r,include=FALSE}
-#setup
-value_cols <- c("democracy","equality","freedom","individualism",
-                "justice","happiness","arms","tolerance")
+#I ran this in a separate script. See ~study-2/extramodels.ipynb. This is the output of that script:
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-2/results_py/"
+lasso_all <- readr::read_csv(paste0(repo_url,"ALL_lasso_all.csv"), show_col_types = FALSE)
+lasso_unpen <- readr::read_csv(paste0(repo_url,"ALL_lasso_unpen.csv"), show_col_types = FALSE)
+ridge_all <- readr::read_csv(paste0(repo_url,"ALL_ridge_all.csv"), show_col_types = FALSE)
+ridge_unpen <- readr::read_csv(paste0(repo_url,"ALL_ridge_unpen.csv"), show_col_types = FALSE)
+lmg_all <- readr::read_csv(paste0(repo_url,"ALL_optionA_LMG.csv"), show_col_types = FALSE)
 
-control_vars <- c(
-  "ideo_con_z","SDO_z","TIPI_agree_z","man","white","hispanic",
-  "income_num_z","edu_num_z","age_z",
-  "county_medianincome_z","county_gini_z","county_density_z"
-)
-
-outcome_vars <- c("antiest_z","change_z","trust_deminst_z","trust_natinst_z")
-
-df_wide <- df_bsc_long_elg %>%
-  filter(type == "paper") %>% 
-  select(PID,value,weighted_score) %>%
-  pivot_wider(names_from = value,
-              values_from = weighted_score)
-
-df_formodels <- df_bsc_elg %>% 
-  select(PID,all_of(outcome_vars),all_of(control_vars)) %>% 
-  left_join(df_wide,by = "PID") %>% 
-  drop_na(all_of(c(outcome_vars,control_vars)))
-  
-X_all <- c(value_cols, control_vars)
-```
-
-### LMG Shapley Decomposition
-
-We use LMG Shapley Decomposition to determine the relative variance explained by each component (weighted overarching value) of the broken promise composite, while controlling for the same variables as the ones in the preregistered models. This approach identifies each model's $R^2$ in terms of the proportional contribution of each value, providing a clear indication of which values drive the overall effect of a broken promise. We can do this for each of the four outcome variables for which we observed an effect of the composite broken promise score (anti-establishment sentiment, support for radical change, trust in democratic political institutions, and trust in non-political mainstream institutions).
-
-```{r,include=FALSE}
-#library(relaimpo)
-#library(glmnet)
-#library(broom)
-
-run_option_A <- function(outcome,
-                         df_formodels,
-                         value_cols,
-                         control_vars,
-                         boot_iter = 100,
-                         seed = 20251006) {
-
-  # OLS with values + controls
-  ols_formula <- as.formula(
-    paste(outcome, "~", paste(c(value_cols, control_vars), collapse = " + "))
-  )
-  m_ols <- lm(ols_formula, data = df_formodels)
-
-  # Point estimates (fast, no boot)
-  ri_fast <- relaimpo::calc.relimp(m_ols, type = "lmg", rela = TRUE)
-
-  # Normalize to shares among VALUES ONLY
-  vals <- ri_fast$lmg[names(ri_fast$lmg) %in% value_cols]
-  s <- sum(vals)
-  ri_values_table <- tibble::tibble(
-    predictor = names(vals),
-    lmg_share_among_values = as.numeric(vals) / s,
-    lmg_lo_among_values = NA_real_,
-    lmg_hi_among_values = NA_real_
-  ) %>% arrange(desc(lmg_share_among_values))
-
-  # Only compute CIs if boot_iter is reasonably large
-  if (boot_iter >= 20) {
-    set.seed(seed)
-    ri_boot <- relaimpo::boot.relimp(m_ols, b = boot_iter, type = "lmg", rela = TRUE)
-    ri_ci   <- relaimpo::booteval.relimp(ri_boot)
-
-    lmg_tbl <- tibble::tibble(
-      predictor = names(ri_ci$lmg),
-      lmg       = ri_ci$lmg,
-      lmg_lo    = ri_ci$lower,
-      lmg_hi    = ri_ci$upper
-    ) %>% dplyr::filter(predictor %in% value_cols)
-
-    s2 <- sum(lmg_tbl$lmg)
-    ri_values_table <- lmg_tbl %>%
-      dplyr::mutate(
-        lmg_share_among_values = lmg / s2,
-        lmg_lo_among_values    = lmg_lo / s2,
-        lmg_hi_among_values    = lmg_hi / s2
-      ) %>%
-      dplyr::select(predictor, lmg_share_among_values, lmg_lo_among_values, lmg_hi_among_values) %>%
-      dplyr::arrange(dplyr::desc(lmg_share_among_values))
-  }
-
-  list(
-    outcome = outcome,
-    lm_summary = broom::tidy(m_ols),
-    ri_values_table = ri_values_table
-  )
-}
-
-
-res_A_antiest <- run_option_A("antiest_z", df_formodels, value_cols, control_vars, boot_iter = 300)
-res_A_change  <- run_option_A("change_z", df_formodels, value_cols, control_vars, boot_iter = 300)
-res_A_tdem    <- run_option_A("trust_deminst_z", df_formodels, value_cols, control_vars, boot_iter = 300)
-res_A_tnat    <- run_option_A("trust_natinst_z", df_formodels, value_cols, control_vars, boot_iter = 300)
-```
-
-```{r}
-
-
-# Run across outcomes
-
-results <- purrr::map(outcome_vars, analyze_outcome,
-                      df_formodels = df_formodels,
-                      value_cols = value_cols,
-                      control_vars = control_vars,
-                      unpenalize_controls = TRUE) %>%
-  purrr::set_names(outcome_vars)
-
-# Example: peek at a specific table
-results$antiest_z$optionA$ri_values_table
-results$antiest_z$optionB$lasso$coefs
-
-# (Optional) Make a quick summary per outcome: top 3 drivers by relative-importance share
-top3 <- purrr::map_df(results, function(res) {
-  res$optionA$ri_values_table %>%
-    slice_max(lmg_share_among_values, n = 3) %>%
-    mutate(outcome = res$outcome) %>%
-    select(outcome, predictor, lmg_share_among_values, lmg_lo_among_values, lmg_hi_among_values)
-}, .id = "outcome_check")
-
-top3
 
 ```
 
-### Ridge and Lasso Regression
+In this study, we can identify the driving values behind our effects. That is, by looking at the unique variance in our outcome measures, explained by each guiding value's perceived fulfillment, and controlling for the same variables as those in out preregistered models, we can identify which of the eight values are most important for explaining political discontent. Potentially, we could just insert the eight values' perceived fulfillment (weighted score) into the same model and see what emerges. However, there is a clear problem of multicolinearity. Below, we outline three approaches to handle this problem.\
+\
+**LMG Shapley Decomposition:** The LMG (Lindeman–Merenda–Gold) or Shapley decomposition approach partitions the model’s explained variance ($R^2$) into non-overlapping components attributable to each predictor. It does this by averaging the incremental contribution of a predictor across all possible orderings in which variables could be entered into the model.\
+**Ridge Regression:** Ridge regression introduces an L² penalty term into the ordinary least squares estimation, shrinking regression coefficients toward zero in proportion to their size. By stabilizing the coefficient estimates, ridge regression distributes shared explanatory power across correlated predictors and reduces variance in the estimates.\
+Lasso Regression:** Lasso regression incorporates an $L^1$ penalty into the estimation, which both shrinks coefficients and sets some of them exactly to zero. This property allows lasso to act as a variable selection procedure, identifying the subset of predictors that most strongly retain predictive utility under penalization.\
+\
+Below, I show each value's contribution to each outcome of interest:
 
-We also estimated penalized regression models (ridge and lasso) that shrink or set to zero predictors in the presence of multicollinearity. Applied to the eight weighted value scores alongside controls, these models identify which values retain predictive strength when penalties discourage overfitting. Ridge coefficients highlight relative magnitudes across values, while lasso selections pinpoint the subset of values most robustly associated with the outcomes.
+### Antiestablishment sentiment
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+df_lmg <- lmg_all %>% 
+  filter(outcome == "antiest_z") %>% 
+  select(predictor,share_among_values) %>% 
+  mutate(share_among_values = round(share_among_values,3)) %>% 
+  rename("lmg-share" = share_among_values)
+
+df_ridgepen <- ridge_all %>% 
+  filter(outcome == "antiest_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-penalized-coef" = coef)
+
+df_ridgeunpen <- ridge_unpen %>% 
+  filter(outcome == "antiest_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-unpenalized-coef" = coef)
+
+df_lassopen <- lasso_all %>% 
+  filter(outcome == "antiest_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-penalized-coef" = coef)
+
+df_lassounpen <- lasso_unpen %>% 
+  filter(outcome == "antiest_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-unpenalized-coef" = coef)
+
+df_lmg %>% 
+  left_join(df_ridgepen,by = "predictor") %>% 
+  left_join(df_ridgeunpen,by = "predictor") %>% 
+  left_join(df_lassopen,by = "predictor") %>% 
+  left_join(df_lassounpen,by = "predictor") %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### Support for radical change
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+df_lmg <- lmg_all %>% 
+  filter(outcome == "change_z") %>% 
+  select(predictor,share_among_values) %>% 
+  mutate(share_among_values = round(share_among_values,3)) %>% 
+  rename("lmg-share" = share_among_values)
+
+df_ridgepen <- ridge_all %>% 
+  filter(outcome == "change_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-penalized-coef" = coef)
+
+df_ridgeunpen <- ridge_unpen %>% 
+  filter(outcome == "change_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-unpenalized-coef" = coef)
+
+df_lassopen <- lasso_all %>% 
+  filter(outcome == "change_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-penalized-coef" = coef)
+
+df_lassounpen <- lasso_unpen %>% 
+  filter(outcome == "change_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-unpenalized-coef" = coef)
+
+df_lmg %>% 
+  left_join(df_ridgepen,by = "predictor") %>% 
+  left_join(df_ridgeunpen,by = "predictor") %>% 
+  left_join(df_lassopen,by = "predictor") %>% 
+  left_join(df_lassounpen,by = "predictor") %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### Trust in democratic political institutions
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+df_lmg <- lmg_all %>% 
+  filter(outcome == "trust_deminst_z") %>% 
+  select(predictor,share_among_values) %>% 
+  mutate(share_among_values = round(share_among_values,3)) %>% 
+  rename("lmg-share" = share_among_values)
+
+df_ridgepen <- ridge_all %>% 
+  filter(outcome == "trust_deminst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-penalized-coef" = coef)
+
+df_ridgeunpen <- ridge_unpen %>% 
+  filter(outcome == "trust_deminst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-unpenalized-coef" = coef)
+
+df_lassopen <- lasso_all %>% 
+  filter(outcome == "trust_deminst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-penalized-coef" = coef)
+
+df_lassounpen <- lasso_unpen %>% 
+  filter(outcome == "trust_deminst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-unpenalized-coef" = coef)
+
+df_lmg %>% 
+  left_join(df_ridgepen,by = "predictor") %>% 
+  left_join(df_ridgeunpen,by = "predictor") %>% 
+  left_join(df_lassopen,by = "predictor") %>% 
+  left_join(df_lassounpen,by = "predictor") %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### Trust in non-political mainstream institutions
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+df_lmg <- lmg_all %>% 
+  filter(outcome == "trust_natinst_z") %>% 
+  select(predictor,share_among_values) %>% 
+  mutate(share_among_values = round(share_among_values,3)) %>% 
+  rename("lmg-share" = share_among_values)
+
+df_ridgepen <- ridge_all %>% 
+  filter(outcome == "trust_natinst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-penalized-coef" = coef)
+
+df_ridgeunpen <- ridge_unpen %>% 
+  filter(outcome == "trust_natinst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("ridge-unpenalized-coef" = coef)
+
+df_lassopen <- lasso_all %>% 
+  filter(outcome == "trust_natinst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-penalized-coef" = coef)
+
+df_lassounpen <- lasso_unpen %>% 
+  filter(outcome == "trust_natinst_z") %>% 
+  select(predictor,coef) %>% 
+  mutate(coef = round(coef,3)) %>% 
+  rename("lasso-unpenalized-coef" = coef)
+
+df_lmg %>% 
+  left_join(df_ridgepen,by = "predictor") %>% 
+  left_join(df_ridgeunpen,by = "predictor") %>% 
+  left_join(df_lassopen,by = "predictor") %>% 
+  left_join(df_lassounpen,by = "predictor") %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
 
 ## Different Contracts for different people
 
-
-
-```{r,include=FALSE}
-df <- df_bsc_long_elg %>% 
-  filter(type == "paper") %>% 
-  select(PID,value,weight,weighted_score)
-
-
-#regions
-northeast_newengland <- c("Connecticut","Maine","Massachusetts","New Hampshire","Rhode Island","Vermont")
-northeast_midatlantic <- c("New Jersey","New York","Pennsylvania")
-midwest_eastnorthcentral <- c("Illinois","Indiana","Michigan","Ohio","Wisconsin")
-midwest_westnorthcentral <- c("Iowa","Kansas","Minnesota","Missouri","Nebraska","North Dakota","South Dakota")
-south_southatlantic <- c("Delaware","District of Columbia","Florida","Georgia","Maryland","North Carolina","South Carolina","Virginia","West Virginia")
-south_eastsouthcentral <- c("Alabama","Kentucky","Mississippi","Tennessee")
-south_westsouthcentral <- c("Arkansas","Louisiana","Oklahoma","Texas")
-west_mountain <- c("Arizona","Colorado","Idaho","Montana","Nevada","New Mexico","Utah","Wyoming")
-west_pacific <- c("Alaska","California","Hawaii","Oregon","Washington")
-
-df_bsc_elg %>% 
-  select(PID,TIPI_extra:TIPI_open,ideo_con:ideo_prog,party_id,income_num,edu,race,hispanic,age,gender,state) %>% 
-  mutate_at(vars(TIPI_extra:TIPI_open),function(x){scale(x)}) %>% 
-  mutate_at(vars(TIPI_extra:TIPI_open),function(x){case_when(x >= 1 ~ "high",
-                                                             x < 1 & x > -1 ~ "mid",
-                                                             x <= -1 ~ "low",
-                                                             .default = NA)}) %>% 
-  mutate_at(vars(ideo_con:ideo_prog),function(x){replace_na(x,0)}) %>% 
-  mutate_at(vars(ideo_con:ideo_prog),function(x){ifelse(x > 4,1,0)}) %>% 
-  mutate(income = case_when(income_num < 4 ~ "under $60k",
-                            income_num >= 4 & income_num < 7 ~ "$60k-$120k",
-                            income_num >= 7 ~ "over $120k",
-                            .default = NA)) %>% 
-  mutate(edu = case_when(edu %in% c("noHS","GED","2yearColl") ~ "no college",
-                         edu %in% c("4yearColl","MA","PHD") ~ "with college",
-                         .default = NA)) %>% 
-  mutate(race_eth = case_when(is.na(race) & hispanic == 1 ~ "hispanic",
-                          race == "White" & hispanic == 0 ~ "non-hispanic white",
-                          race == "Asian" & hispanic == 0 ~ "non-hispanic asian",
-                          race == "Black or African American" & hispanic == 0 ~ "non-hispanic black",
-                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 0 ~ "non-hispanic other",
-                          race == "White" & hispanic == 1 ~ "hispanic white",
-                          race == "Asian" & hispanic == 1 ~ "hispanic asian",
-                          race == "Black or African American" & hispanic == 1 ~ "hispanic black",
-                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 1 ~ "hispanic other",
-                          race == "multiracial" ~ "multiracial",
-                          .default = NA)) %>% 
-  mutate(age = case_when(age <= 24 ~ "18-24",
-                         age >= 25 & age <= 34 ~ "25-34",
-                         age >= 35 & age <= 44 ~ "35-44",
-                         age >= 45 & age <= 54 ~ "45-54",
-                         age >= 55 & age <= 64 ~ "55-64",
-                         age >= 65 & age <= 74 ~ "65-74",
-                         age >= 75 ~ "75+",
-                         .default = NA)) %>% 
-  mutate(region = case_when(state %in% northeast_midatlantic ~ "northeast - middle atlantic",
-                            state %in% northeast_newengland ~ "northeast - new england",
-                            state %in% midwest_eastnorthcentral ~ "midwest - east north cnetral",
-                            state %in% midwest_westnorthcentral ~ "midwest - west north central",
-                            state %in% south_southatlantic ~ "south - south atlantic",
-                            state %in% south_eastsouthcentral ~ "south - east south central",
-                            state %in% south_westsouthcentral ~ "south - west south central",
-                            state %in% west_mountain ~ "west - mountain",
-                            state %in% west_pacific ~ "west - pacific",
-                            .default = NA))
-
-```
-
+Until now, we painted the social contract for the entire nationally representative sample. Here, we can see if people of different backgrounds see the social contract differently from one another. For example, conservatives might believe that the U.S.'s promise is different from what liberals believe. And not only that, they also may believe the U.S. is fulfilling its promise to a different degree than what liberals believe. Of course, there are infinite ways to break the data. In this app, you can break the data along big five personality traits, political ideology, party affiliation, education, income, age, race, gender, region, and state.\
+\
+<a href="./different-contracts-app/index.html" target="_blank" rel="noopener"
+     style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;">
+    EXPLORE CROSS-SECTIONS ↗
+  </a>

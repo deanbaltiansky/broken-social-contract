@@ -43,7 +43,7 @@ pretty_desc <- function(var, var_info) {
   ifelse(is.na(ds) | !nzchar(ds), "", ds)
 }
 
-# Build per-group summary table (8 rows; means by value)
+# Per-group summary (8 rows; means by value; alphabetical)
 summarize_values <- function(df_sub) {
   df_sub %>%
     group_by(value) %>%
@@ -57,15 +57,13 @@ summarize_values <- function(df_sub) {
     arrange(tolower(Value))
 }
 
-# Build consolidated wide table: one row per Value; for each category, two columns
+# Consolidated wide table: one row per Value; for each category, two columns
 build_consolidated_table <- function(df, grp, categories) {
-  # For each category -> summarise, then join
   vals_all <- sort(unique(df$value))
   out <- data.frame(Value = sort(vals_all), stringsAsFactors = FALSE)
   for (cat in categories) {
     sub <- df[df[[grp]] == cat, , drop = FALSE]
     if (nrow(sub) == 0) {
-      # empty: add NA columns
       out[[paste0(cat, " — Promise")]]  <- NA_real_
       out[[paste0(cat, " — Delivery")]] <- NA_real_
       next
@@ -78,18 +76,6 @@ build_consolidated_table <- function(df, grp, categories) {
              !!paste0(cat, " — Delivery") := Delivery)
   }
   out
-}
-
-# Pattern assignment for categories in consolidated plot
-# returns vectors density, angle (recycled as needed)
-pattern_for_categories <- function(n) {
-  # First 6 distinct patterns; recycle afterwards
-  dens <- c(0, 20, 40, 20, 40, 60)   # 0 = solid; >0 = hatched
-  ang  <- c(0, 45, 90, 135, 30, 60)
-  list(
-    density = rep(dens, length.out = n),
-    angle   = rep(ang,  length.out = n)
-  )
 }
 
 # -----------------------------
@@ -112,7 +98,7 @@ ui <- fluidPage(
       tags$hr(),
       helpText("Display modes:"),
       tags$p("• For age, race/ethnicity, region, and state: separate tables and plots for each category."),
-      tags$p("• For all other variables: a consolidated table (superordinate headers) and one combined plot with patterned fills per category.")
+      tags$p("• For all other variables: a consolidated table (superordinate headers) and paneled plots (one panel per category).")
     ),
     mainPanel(
       uiOutput("main_ui"),
@@ -177,7 +163,6 @@ server <- function(input, output, session) {
         levs <- sort(unique(na.omit(as.character(df0[[grp]]))))
       }
       
-      # build a wellPanel per level
       panels <- lapply(seq_along(levs), function(i) {
         lv <- levs[i]
         df_sub <- df0[df0[[grp]] == lv, , drop = FALSE]
@@ -187,7 +172,7 @@ server <- function(input, output, session) {
         tbl_id  <- paste0("tbl_", i)
         plot_id <- paste0("plot_", i)
         
-        # register table
+        # -- Table renderer --
         local({
           idx <- i; df_sum <- sum_df
           output[[tbl_id]] <- renderTable({
@@ -198,7 +183,8 @@ server <- function(input, output, session) {
               )
           }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s")
         })
-        # register plot (two colors; one subgroup)
+        
+        # -- Plot renderer: overlay bars (Promise base, Delivery overlay), legend under plot --
         local({
           idx <- i; df_sum <- sum_df
           output[[plot_id]] <- renderPlot({
@@ -209,23 +195,45 @@ server <- function(input, output, session) {
             if (all(is.na(prom)) && all(is.na(del))) {
               plot.new(); title("No numeric data to plot"); return()
             }
-            M <- rbind(Promise = prom, Delivery = del)
-            cols <- c("#4C78A8", "#F58518")
             
-            oldpar <- par(no.readonly = TRUE)
-            on.exit(par(oldpar), add = TRUE)
-            par(mar = c(4, 10, 2, 2))
-            xlim <- range(0, M, na.rm = TRUE)
+            xlim <- range(0, prom, del, na.rm = TRUE)
+            if (!all(is.finite(xlim))) xlim <- c(0, 1)
             
-            barplot(
-              M, beside = TRUE, horiz = TRUE,
-              names.arg = vals, las = 1, xlim = xlim,
-              col = cols, border = NA, cex.names = 0.9
+            oldpar <- par(no.readonly = TRUE); on.exit(par(oldpar), add = TRUE)
+            par(mar = c(5, 10, 2, 2))  # extra bottom margin for legend
+            
+            # 1) Promise bars (lightblue with black border)
+            mp <- barplot(
+              prom,
+              horiz = TRUE,
+              names.arg = vals,
+              las = 1,
+              xlim = xlim,
+              col = "lightblue",
+              border = "black",
+              cex.names = 0.9
             )
+            
+            # 2) Delivery overlay (semi-transparent grey)
+            half_h <- 0.4
+            del2 <- del; del2[is.na(del2)] <- 0
+            rect(
+              xleft = 0,
+              ybottom = mp - half_h,
+              xright = del2,
+              ytop = mp + half_h,
+              col = adjustcolor("grey50", alpha.f = 0.5),
+              border = NA
+            )
+            
             grid(col = "#eaeaea")
-            legend("bottomright",
+            
+            # 3) Legend under the plot
+            legend("bottom",
                    legend = c("Perceived Promise", "Perceived Delivery"),
-                   fill = cols, bty = "n", cex = 0.9, inset = 0.02)
+                   fill   = c("lightblue", adjustcolor("grey50", 0.5)),
+                   border = c("black", NA),
+                   bty = "n", inset = 0.02, horiz = TRUE, xpd = NA, cex = 0.9)
           })
         })
         
@@ -236,26 +244,24 @@ server <- function(input, output, session) {
           plotOutput(plot_id, height = "300px")
         )
       })
+      
       tagList(panels)
       
     } else {
-      # ---- Consolidated mode ----
+      # ---- Consolidated mode (panels) ----
       levs <- sort(unique(na.omit(as.character(df0[[grp]]))))
-      validate(need(length(levs) >= 2, "Not enough categories to consolidate."))
+      validate(need(length(levs) >= 1, "No categories to show."))
       
-      # consolidated wide table
+      # consolidated wide table for the UI
       cons_tbl <- build_consolidated_table(df0, grp, levs)
       
       # ---------- Table UI with superordinate headers ----------
       tbl_id <- "cons_table"
       output[[tbl_id]] <- renderUI({
-        # Build a two-row header: first row has the categories (colspan=2 each),
-        # second row has Promise / Delivery subheaders.
         header_top <- tags$tr(
           tags$th("Value", style="border:1px solid #ddd; padding:6px; background:#f2f2f2; text-align:left;"),
           lapply(levs, function(lv) {
-            tags$th(colspan = 2, style="border:1px solid #ddd; padding:6px; background:#f2f2f2; text-align:center;",
-                    lv)
+            tags$th(colspan = 2, style="border:1px solid #ddd; padding:6px; background:#f2f2f2; text-align:center;", lv)
           })
         )
         header_sub <- tags$tr(
@@ -267,11 +273,8 @@ server <- function(input, output, session) {
             )
           })
         )
-        # body rows
         body_rows <- apply(cons_tbl, 1, function(row) {
-          # row is a named vector: Value, then pairs of cols
           cells <- list(tags$td(row[[1]], style="border:1px solid #ddd; padding:6px; text-align:left;"))
-          # format numbers to 3 d.p.
           for (j in 2:length(row)) {
             val <- suppressWarnings(as.numeric(row[[j]]))
             if (is.na(val)) {
@@ -289,91 +292,81 @@ server <- function(input, output, session) {
         )
       })
       
-      # ---------- Consolidated plot ----------
+      # ---------- Paneled plot (one subplot per category), shared legend UNDER ----------
       plot_id <- "cons_plot"
       output[[plot_id]] <- renderPlot({
-        # Build a matrix M with rows = (for each category: Promise, then Delivery), columns = Values
-        vals <- sort(unique(df0$value))
-        # For consistent ordering with cons_tbl:
-        vals <- cons_tbl$Value
+        # Prepare per-category summaries and global x-range
+        per_cat <- lapply(levs, function(lv) {
+          sub <- df0[df0[[grp]] == lv, , drop = FALSE]
+          s   <- summarize_values(sub)
+          list(vals = s$Value,
+               prom = s$`Perceived Promise`,
+               del  = s$`Perceived Delivery`,
+               lab  = lv)
+        })
+        xr <- range(0, unlist(lapply(per_cat, function(pc) c(pc$prom, pc$del))), na.rm = TRUE)
+        if (!all(is.finite(xr))) xr <- c(0, 1)
         
-        # For each category, pull Promise/Delivery vectors aligned to 'vals'
-        prom_list <- list()
-        delv_list <- list()
-        for (lv in levs) {
-          pcol <- paste0(lv, " — Promise")
-          dcol <- paste0(lv, " — Delivery")
-          prom_list[[lv]] <- as.numeric(cons_tbl[[pcol]])
-          delv_list[[lv]] <- as.numeric(cons_tbl[[dcol]])
+        # Choose panel grid
+        n <- length(levs)
+        cols <- if (n <= 2) 2 else if (n <= 4) 2 else if (n <= 6) 3 else 3
+        rows <- ceiling(n / cols)
+        
+        oldpar <- par(no.readonly = TRUE); on.exit(par(oldpar), add = TRUE)
+        # layout with an extra legend row at bottom
+        lay_mat <- matrix(seq_len(rows * cols), nrow = rows, byrow = TRUE)
+        lay_mat <- rbind(lay_mat, rep(max(lay_mat) + 1, ncol(lay_mat)))
+        layout(lay_mat, heights = c(rep(1, rows), 0.30))
+        
+        par(mar = c(3.5, 9.5, 2, 1))  # bottom, left, top, right
+        
+        for (i in seq_len(n)) {
+          pc <- per_cat[[i]]
+          vals <- pc$vals; prom <- pc$prom; del <- pc$del
+          
+          # 1) Promise base bars
+          mp <- barplot(
+            prom,
+            horiz = TRUE,
+            names.arg = vals,
+            las = 1,
+            xlim = xr,
+            col = "lightblue",
+            border = "black",
+            cex.names = 0.85,
+            main = pc$lab
+          )
+          
+          # 2) Delivery overlay
+          half_h <- 0.4
+          del2 <- del; del2[is.na(del2)] <- 0
+          rect(
+            xleft = 0,
+            ybottom = mp - half_h,
+            xright = del2,
+            ytop = mp + half_h,
+            col = adjustcolor("grey50", alpha.f = 0.5),
+            border = NA
+          )
+          
+          grid(col = "#eaeaea")
         }
-        # Assemble rows: [cat1-Promise, cat1-Delivery, cat2-Promise, cat2-Delivery, ...]
-        rows_mat <- do.call(rbind, unlist(mapply(function(p, d) list(p, d), prom_list, delv_list, SIMPLIFY = FALSE), recursive = FALSE))
-        if (is.null(rows_mat)) {
-          plot.new(); title("No data to plot"); return()
-        }
-        rownames(rows_mat) <- as.vector(unlist(lapply(levs, function(lv) c(paste0(lv," — Promise"), paste0(lv," — Delivery")))))
         
-        # Colors by measure: Promise (blue), Delivery (orange)
-        # Patterns by category: solid/striped/dotted/etc.
-        meas_cols <- c("#4C78A8", "#F58518")
-        # row color vector: alternate blue/orange
-        row_colors <- rep(meas_cols, times = length(levs))
-        
-        # density/angle per category, repeated for Promise and Delivery rows
-        pat <- pattern_for_categories(length(levs))
-        row_density <- rep(pat$density, each = 2)
-        row_angle   <- rep(pat$angle,   each = 2)
-        
-        oldpar <- par(no.readonly = TRUE)
-        on.exit(par(oldpar), add = TRUE)
-        par(mar = c(4, 12, 2, 2))
-        
-        # x-range across all rows
-        xr <- range(0, rows_mat, na.rm = TRUE)
-        
-        bp <- barplot(
-          rows_mat,
-          beside = TRUE,
-          horiz  = TRUE,
-          names.arg = vals,
-          las = 1,
-          xlim = xr,
-          col = row_colors,
-          density = row_density,
-          angle   = row_angle,
-          border  = NA,
-          cex.names = 0.9
-        )
-        grid(col = "#eaeaea")
-        
-        # Legends: one for color (measure), one for pattern (category)
-        legend("bottomright",
+        # Bottom legend (shared)
+        par(mar = c(0, 0, 0, 0))
+        plot.new()
+        legend("center",
                legend = c("Perceived Promise", "Perceived Delivery"),
-               fill = meas_cols, bty = "n", cex = 0.9, inset = 0.02)
-        
-        # Pattern legend: draw small proxy bars with matching density/angle but neutral color
-        # We'll use grey to focus on pattern
-        par(xpd = NA)
-        legend_text <- levs
-        legend_fill <- rep("grey50", length(levs))
-        legend_density <- pat$density
-        legend_angle   <- pat$angle
-        legend("bottomleft",
-               legend = legend_text,
-               fill = legend_fill,
-               density = legend_density,
-               angle = legend_angle,
-               border = NA,
-               bty = "n", cex = 0.9, inset = 0.02,
-               title = "Category pattern")
+               fill   = c("lightblue", adjustcolor("grey50", 0.5)),
+               border = c("black", NA),
+               bty = "n", horiz = TRUE, cex = 0.95, xpd = NA)
       })
       
-      # Compose consolidated UI
       tagList(
         h4(paste0(pretty_label(input$groupvar, var_info), " — Consolidated")),
         uiOutput(tbl_id),
         tags$div(style="height:12px;"),
-        plotOutput(plot_id, height = "420px")
+        plotOutput(plot_id, height = "480px")
       )
     }
   })
