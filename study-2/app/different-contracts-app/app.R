@@ -43,11 +43,10 @@ pretty_desc <- function(var, var_info) {
   ifelse(is.na(ds) | !nzchar(ds), "", ds)
 }
 
-# Ideology variables + display label mapping for 0/1
+# Ideology variables
 IDEO_VARS <- c("ideo_con","ideo_lib","ideo_lbrtn","ideo_demsoc","ideo_prog")
 
 map_ideology_labels <- function(grp, levs_char) {
-  # Only map for the ideology vars and only for levels "0"/"1"
   if (!(grp %in% IDEO_VARS)) return(levs_char)
   lab0 <- switch(grp,
                  "ideo_con"   = "Not Conservatives",
@@ -75,7 +74,6 @@ ideology_desc_override <- function(grp) {
   } else ""
 }
 
-# Per-group summary (8 rows; means by value; alphabetical)
 summarize_values <- function(df_sub) {
   df_sub %>%
     group_by(value) %>%
@@ -89,7 +87,6 @@ summarize_values <- function(df_sub) {
     arrange(tolower(Value))
 }
 
-# Consolidated wide table: one row per Value; for each raw category, two columns
 build_consolidated_table <- function(df, grp, categories) {
   vals_all <- sort(unique(df$value))
   out <- data.frame(Value = sort(vals_all), stringsAsFactors = FALSE)
@@ -161,10 +158,8 @@ server <- function(input, output, session) {
   choices <- as.list(present_allowed); names(choices) <- labels
   updateSelectInput(session, "groupvar", choices = choices, selected = present_allowed[1])
   
-  # Variables that use split mode
   split_vars <- c("age","race_eth","region","state")
   
-  # State picker (only for state)
   output$state_picker <- renderUI({
     req(input$groupvar)
     if (identical(input$groupvar, "state")) {
@@ -175,7 +170,6 @@ server <- function(input, output, session) {
     } else NULL
   })
   
-  # Description (with ideology override)
   output$chosen_desc <- renderText({
     req(input$groupvar)
     base <- pretty_desc(input$groupvar, var_info)
@@ -184,36 +178,26 @@ server <- function(input, output, session) {
     txt
   })
   
-  # Top-level UI switches between split vs consolidated
   output$main_ui <- renderUI({
     req(input$groupvar)
     grp <- input$groupvar
     
     if (grp %in% split_vars) {
-      # ---- Split mode (one panel per category) ----
-      if (identical(grp, "state")) {
-        levs_raw <- input$states
-        validate(need(length(levs_raw) >= 1, "Select at least one state to display."))
-      } else {
-        levs_raw <- sort(unique(na.omit(as.character(df0[[grp]]))))
-      }
-      
-      # Display labels for levels (ideology mapping not used here because split_vars excludes ideology)
-      levs_disp <- levs_raw
+      # ---- Split mode ----
+      levs_raw <- if (grp == "state") input$states else sort(unique(na.omit(as.character(df0[[grp]]))))
+      validate(need(length(levs_raw) >= 1, "Select at least one category to display."))
       
       panels <- lapply(seq_along(levs_raw), function(i) {
-        lv_raw <- levs_raw[i]
-        lv_lab <- levs_disp[i]
-        df_sub <- df0[df0[[grp]] == lv_raw, , drop = FALSE]
+        lv <- levs_raw[i]
+        df_sub <- df0[df0[[grp]] == lv, , drop = FALSE]
         n_people <- count_people(df_sub)
         sum_df <- summarize_values(df_sub)
         
         tbl_id  <- paste0("tbl_", i)
         plot_id <- paste0("plot_", i)
         
-        # -- Table renderer --
         local({
-          idx <- i; df_sum <- sum_df
+          df_sum <- sum_df
           output[[tbl_id]] <- renderTable({
             df_sum %>%
               mutate(
@@ -223,77 +207,48 @@ server <- function(input, output, session) {
           }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s")
         })
         
-        # -- Plot renderer: overlay bars, vertical gridlines only (grey70), legend under plot --
         local({
-          idx <- i; df_sum <- sum_df
+          df_sum <- sum_df
           output[[plot_id]] <- renderPlot({
             vals <- df_sum$Value
             prom <- df_sum$`Perceived Promise`
             del  <- df_sum$`Perceived Delivery`
-            
             if (all(is.na(prom)) && all(is.na(del))) {
               plot.new(); title("No numeric data to plot"); return()
             }
-            
             xlim <- range(0, prom, del, na.rm = TRUE)
-            if (!all(is.finite(xlim))) xlim <- c(0, 1)
-            
             oldpar <- par(no.readonly = TRUE); on.exit(par(oldpar), add = TRUE)
-            par(mar = c(6, 10, 2, 2))  # bottom space for legend
-            
-            # Promise bars (lightblue with black border)
-            mp <- barplot(
-              prom, horiz = TRUE, names.arg = vals, las = 1, xlim = xlim,
-              col = "lightblue", border = "black", cex.names = 0.9
-            )
-            
-            # Delivery overlay (semi-transparent grey50) with black border
-            half_h <- 0.4
-            del2 <- del; del2[is.na(del2)] <- 0
-            rect(
-              xleft = 0,
-              ybottom = mp - half_h,
-              xright = del2,
-              ytop = mp + half_h,
-              col = adjustcolor("grey50", alpha.f = 0.5),
-              border = "black"
-            )
-            
-            # Vertical gridlines only
-            ax <- axTicks(1)  # x-axis ticks
-            abline(v = ax, col = "grey70", lwd = 1)
-            
-            # Legend under the plot
-            legend("bottom",
+            par(mfrow = c(2,1), mar = c(1,10,2,2), oma = c(4,0,0,0))
+            barplot(prom, horiz = TRUE, names.arg = vals, las = 1, xlim = xlim,
+                    col = "lightblue", border = "black", cex.names = 0.9) -> mp
+            rect(xleft = 0, ybottom = mp - 0.4, xright = del, ytop = mp + 0.4,
+                 col = adjustcolor("grey50", alpha.f = 0.5), border = "black")
+            abline(v = axTicks(1), col = "grey70", lwd = 1)
+            par(mar = c(0,0,0,0))
+            plot.new()
+            legend("center",
                    legend = c("Perceived Promise", "Perceived Delivery"),
                    fill   = c("lightblue", adjustcolor("grey50", 0.5)),
                    border = c("black", "black"),
-                   bty = "n", inset = 0.02, horiz = TRUE, xpd = NA, cex = 0.9)
+                   bty = "n", horiz = TRUE, cex = 0.9, xpd = NA)
           })
         })
         
         wellPanel(
-          tags$h4(paste0(pretty_label(grp, var_info), ": ", lv_lab, " — N = ", n_people)),
+          tags$h4(paste0(pretty_label(grp, var_info), ": ", lv, " — N = ", n_people)),
           tableOutput(tbl_id),
           tags$div(style="height:12px;"),
-          plotOutput(plot_id, height = "300px")
+          plotOutput(plot_id, height = "350px")
         )
       })
-      
       tagList(panels)
       
     } else {
-      # ---- Consolidated mode (paneled) ----
+      # ---- Consolidated mode ----
       levs_raw <- sort(unique(na.omit(as.character(df0[[grp]]))))
-      validate(need(length(levs_raw) >= 1, "No categories to show."))
-      
-      # Display labels for consolidated headers / panel titles
       levs_disp <- if (grp %in% IDEO_VARS) map_ideology_labels(grp, levs_raw) else levs_raw
-      
-      # Build consolidated wide table using RAW keys, but display DISP in headers
       cons_tbl <- build_consolidated_table(df0, grp, levs_raw)
       
-      # ---------- Table UI with superordinate headers (display labels) ----------
       tbl_id <- "cons_table"
       output[[tbl_id]] <- renderUI({
         header_top <- tags$tr(
@@ -301,16 +256,15 @@ server <- function(input, output, session) {
           lapply(seq_along(levs_disp), function(j) {
             tags$th(colspan = 2,
                     style="border:1px solid #ddd; padding:6px; background:#f2f2f2; text-align:center;",
-                    levs_disp[j]
-            )
+                    levs_disp[j])
           })
         )
         header_sub <- tags$tr(
           tags$th("", style="border:1px solid #ddd; padding:6px;"),
           lapply(rep(1, length(levs_disp)), function(i) {
             list(
-              tags$th("Promise",  style="border:1px solid #ddd; padding:6px; text-align:right;"),
-              tags$th("Delivery", style="border:1px solid #ddd; padding:6px; text-align:right;")
+              tags$th("Promise",  style="border:1px solid #ddd; padding:6px; text-align:center;"),
+              tags$th("Delivery", style="border:1px solid #ddd; padding:6px; text-align:center;")
             )
           })
         )
@@ -319,75 +273,46 @@ server <- function(input, output, session) {
           for (j in 2:length(row)) {
             val <- suppressWarnings(as.numeric(row[[j]]))
             if (is.na(val)) {
-              cells <- c(cells, list(tags$td("", style="border:1px solid #ddd; padding:6px; text-align:right;")))
+              cells <- c(cells, list(tags$td("", style="border:1px solid #ddd; padding:6px; text-align:center;")))
             } else {
-              cells <- c(cells, list(tags$td(sprintf('%.3f', val), style="border:1px solid #ddd; padding:6px; text-align:right;")))
+              cells <- c(cells, list(tags$td(sprintf('%.3f', val), style="border:1px solid #ddd; padding:6px; text-align:center;")))
             }
           }
           do.call(tags$tr, cells)
         })
-        
         tags$table(
           style="border-collapse:collapse; width:100%; table-layout:fixed; font-size:0.9em;",
           header_top, header_sub, body_rows
         )
       })
       
-      # ---------- Paneled plot (one subplot per category), shared legend UNDER ----------
       plot_id <- "cons_plot"
       output[[plot_id]] <- renderPlot({
-        # Prepare per-category summaries and global x-range
         per_cat <- lapply(seq_along(levs_raw), function(j) {
           lv_raw <- levs_raw[j]
           lv_lab <- levs_disp[j]
           sub <- df0[df0[[grp]] == lv_raw, , drop = FALSE]
           s   <- summarize_values(sub)
-          list(vals = s$Value,
-               prom = s$`Perceived Promise`,
-               del  = s$`Perceived Delivery`,
-               lab  = lv_lab)
+          list(vals = s$Value, prom = s$`Perceived Promise`, del = s$`Perceived Delivery`, lab = lv_lab)
         })
         xr <- range(0, unlist(lapply(per_cat, function(pc) c(pc$prom, pc$del))), na.rm = TRUE)
-        if (!all(is.finite(xr))) xr <- c(0, 1)
-        
-        # Choose panel grid
         n <- length(per_cat)
         cols <- if (n <= 2) 2 else if (n <= 4) 2 else if (n <= 6) 3 else 3
         rows <- ceiling(n / cols)
-        
         oldpar <- par(no.readonly = TRUE); on.exit(par(oldpar), add = TRUE)
-        # layout with an extra legend row at bottom
         lay_mat <- matrix(seq_len(rows * cols), nrow = rows, byrow = TRUE)
         lay_mat <- rbind(lay_mat, rep(max(lay_mat) + 1, ncol(lay_mat)))
         layout(lay_mat, heights = c(rep(1, rows), 0.30))
-        
-        par(mar = c(4.5, 9.5, 2, 1))  # more bottom for x labels
-        
+        par(mar = c(4.5, 9.5, 2, 1))
         for (i in seq_len(n)) {
           pc <- per_cat[[i]]
-          vals <- pc$vals; prom <- pc$prom; del <- pc$del
-          
-          # Promise base bars
-          mp <- barplot(
-            prom, horiz = TRUE, names.arg = vals, las = 1, xlim = xr,
-            col = "lightblue", border = "black", cex.names = 0.85, main = pc$lab
-          )
-          
-          # Delivery overlay with black border
-          half_h <- 0.4
-          del2 <- del; del2[is.na(del2)] <- 0
-          rect(
-            xleft = 0, ybottom = mp - half_h, xright = del2, ytop = mp + half_h,
-            col = adjustcolor("grey50", alpha.f = 0.5), border = "black"
-          )
-          
-          # Vertical gridlines only (grey70)
-          ax <- axTicks(1)
-          abline(v = ax, col = "grey70", lwd = 1)
+          mp <- barplot(pc$prom, horiz = TRUE, names.arg = pc$vals, las = 1, xlim = xr,
+                        col = "lightblue", border = "black", cex.names = 0.85, main = pc$lab)
+          rect(xleft = 0, ybottom = mp - 0.4, xright = pc$del, ytop = mp + 0.4,
+               col = adjustcolor("grey50", alpha.f = 0.5), border = "black")
+          abline(v = axTicks(1), col = "grey70", lwd = 1)
         }
-        
-        # Bottom legend (shared)
-        par(mar = c(0, 0, 0, 0))
+        par(mar = c(0,0,0,0))
         plot.new()
         legend("center",
                legend = c("Perceived Promise", "Perceived Delivery"),
@@ -397,7 +322,7 @@ server <- function(input, output, session) {
       })
       
       tagList(
-        h4(paste0(pretty_label(input$groupvar, var_info), " — Consolidated")),
+        h4(pretty_label(input$groupvar, var_info)),
         uiOutput(tbl_id),
         tags$div(style="height:12px;"),
         plotOutput(plot_id, height = "480px")
