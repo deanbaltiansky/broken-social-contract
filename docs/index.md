@@ -59,7 +59,7 @@ The current research posits that political discontent—the dissatisfaction with
 The purpose of Study 1 is to measure Americans' intuitive idea of the social contract, unbiased by researcher framing. Specifically, we asked a nationally representative sample of Americans to list the values that the U.S. stands for on paper (i.e., what was promised), as well as the values that the U.S. stands for in practice (i.e., what is delivered). With word embeddings, participant-assigned weights, and cosine similarity calculus, we measure the subjective experience of a broken social contract: great distance, in high-dimensional semantic space, between what was promised and what is delivered.
 </p>
 <p>
-Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract <strong>positively predicts anti-establishment sentiment</strong> (&beta; = 0.20, F(19,966) = 6.69, 95% CI [0.14, 0.26], p &lt; .001) <strong>and support for radical change</strong> (&beta; = 0.15, F(19,966) = 4.96, 95% CI [0.09, 0.21], p &lt; .001), and <strong>negatively predicts trust in political democratic institutions</strong> (&beta; = -0.23, F(19,966) = -7.52, 95% CI [-0.29, -0.17], p &lt; .001) <strong>and trust in non-political mainstream institutions</strong> (&beta; = -0.20, F(19,966) = -6.61, 95% CI [-0.26, -0.14], p &lt; .001).
+Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social contract <strong>positively predicts anti-establishment sentiment</strong> (β = 0.21, F(19,993) = 6.82, 95% CI [0.15, 0.26], p < .001) <strong>and support for radical change</strong> (β = 0.15, F(19,993) = 5.24, 95% CI [0.10, 0.21], p < .001), and <strong>negatively predicts trust in political democratic institutions</strong> (β = -0.23, F(19,993) = -7.58, 95% CI [-0.29, -0.17], p < .001) and <strong>trust in non-political mainstream institutions</strong> (β = -0.20, F(19,993) = -6.63, 95% CI [-0.25, -0.14], p < .001).
 </p>
 
 <div style="margin-top: 0;">
@@ -78,14 +78,19 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
   </p>
 </div>
 
-<div style="clear:both; margin:16px 0 24px;">
-  <img src="assets/specification_curve.png" 
-       alt="Linear models of Studies 1 and 2"
-       style="display:block; width:100%; max-width:900px; height:auto; margin:0 auto;">
-  <div style="text-align:center; font-size:0.85em; color:#555; font-style:italic; margin-top:6px;">
-    Specification Curve. Linear models of Studies 1 and 2
+```{=html}
+<div style="display:flex; align-items:center; gap:20px; margin:16px 0 24px;">
+  <div style="flex:0 0 70%;">
+    <img src="assets/specification_curve.png" 
+         alt="Linear models of Studies 1 and 2"
+         style="width:100%; height:auto; display:block; margin:0;">
+  </div>
+
+  <div style="flex:1; font-size:0.9em; color:#333;">
+    <p><strong>Specification Curve: Linear models of Studies 1 and 2.</strong> The figure shows the standardized beta coefficients of a broken social contract on antiestablishment sentiment, support for radical change, trust in democratic instituions, trust in mainstream national non-political institutions, and intent to vote in Nov. 2024 (data collected in March 2024 and May 2024). The specification curve demonstrates the robustness of the effect, controlling for a wide variety of covariates, all of which have been shown in the past to predict important political attitudes outcomes. Error bars represent 95% Confidence Intervals.</p>
   </div>
 </div>
+```
 
 ## Dimension reduction
 
@@ -199,6 +204,8 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
   </tr>
 </table>
 
+
+
 ## Study 2
 
 <div style="margin-top: 0;">
@@ -210,4 +217,33 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
   </p>
 </div>
 
+<p>
+The purpose of Study 2 is two-fold: (1) replicate the effects of a broken social contract on political discontent, as observed in Study 1; (2) identify the overarching values that drive this effect. In other words, Study 2 helps us uncover which values are perceived to be under-delivered by the state, which ones are the most important predictors of political discontent, and whether some people care more about some values and others care about other values.
+</p>
+<p>
+To that end, we showed participants the wight overarching values that resulted from the dimension reduction process of free-written responses in Study 1: (1) Democracy; (2) Equality; (3) Freedom; (4) Individualism; (5) Justice; (6) Pursuit of Happiness; (7) Right to Bear Arms; and (8) Tolerance. With a forced sum (must total 100%) they were asked to indicate their perception of priorities of the U.S. on paper as they relate to these values. Then, they indicated the extent to which they believed the U.S. lives up to each of these values (0-100 score).
+</p>
+<p>
+The broken promise score is a weighted mean of the “values delivered” score, weighted by the perceived priorities of the U.S., as indicated by the participant. To get to this weighted mean, each score assigned to the values delivered by the U.S. government was weighted by the participant-assigned priorities indicated in the “priorities of the U.S. on paper” measure. That is, we multiplied the score (0-100) of each value by the weight of the value and took the sum of all weighted value scores. Then, we reverse-scored that sum by subtracting it from 100 so that higher scores indicate a more broken promise.
+</p>
+
+<div style="margin-top: 0;">
+  <p style="margin:0 0 12px 0;">
+    <a href="./studies/study-2/app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      EXPLORE CORRELATIONS ↗
+    </a>
+  </p>
+
+  <p style="margin:0;">
+    <a href="./studies/study-2/lm-table-app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      EXPLORE OLS MODELS ↗
+    </a>
+  </p>
+</div>
+
+<p>
+Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social promise <strong>positively predicts anti-establishment sentiment</strong> (β = 0.34, F(19,794) = 10.18, 95% CI [0.27, 0.40], p < .001) <strong>and support for radical change</strong> (β = 0.30, F(19,794) = 8.84, 95% CI [0.24, 0.37], p < .001), and <strong>negatively predicts trust in political democratic institutions</strong> (β = -0.38, F(19,794) = -11.69, 95% CI [-0.44, -0.31], p < .001) and <strong>trust in non-political mainstream institutions</strong> (β = -0.37, F(19,794) = -11.53, 95% CI [-0.43, -0.30], p < .001).
+</p>
 ## Study 3

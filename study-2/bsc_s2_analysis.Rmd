@@ -1259,7 +1259,7 @@ In this study, we can identify the driving values behind our effects. That is, b
 \
 **LMG Shapley Decomposition:** The LMG (Lindeman–Merenda–Gold) or Shapley decomposition approach partitions the model’s explained variance ($R^2$) into non-overlapping components attributable to each predictor. It does this by averaging the incremental contribution of a predictor across all possible orderings in which variables could be entered into the model.\
 **Ridge Regression:** Ridge regression introduces an L² penalty term into the ordinary least squares estimation, shrinking regression coefficients toward zero in proportion to their size. By stabilizing the coefficient estimates, ridge regression distributes shared explanatory power across correlated predictors and reduces variance in the estimates.\
-Lasso Regression:** Lasso regression incorporates an $L^1$ penalty into the estimation, which both shrinks coefficients and sets some of them exactly to zero. This property allows lasso to act as a variable selection procedure, identifying the subset of predictors that most strongly retain predictive utility under penalization.\
+**Lasso Regression:** Lasso regression incorporates an $L^1$ penalty into the estimation, which both shrinks coefficients and sets some of them exactly to zero. This property allows lasso to act as a variable selection procedure, identifying the subset of predictors that most strongly retain predictive utility under penalization.\
 \
 Below, I show each value's contribution to each outcome of interest:
 
@@ -1439,7 +1439,7 @@ df_lmg %>%
                 position = "left")
 ```
 
-## Different Contracts for different people
+## Different contracts for different people
 
 Until now, we painted the social contract for the entire nationally representative sample. Here, we can see if people of different backgrounds see the social contract differently from one another. For example, conservatives might believe that the U.S.'s promise is different from what liberals believe. And not only that, they also may believe the U.S. is fulfilling its promise to a different degree than what liberals believe. Of course, there are infinite ways to break the data. In this app, you can break the data along big five personality traits, political ideology, party affiliation, education, income, age, race, gender, region, and state.\
 \
