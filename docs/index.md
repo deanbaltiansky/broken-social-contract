@@ -80,19 +80,78 @@ Multilevel linear models, controlling for conservatism, social dominance orienta
 
 ```{=html}
 <div style="display:flex; align-items:center; gap:20px; margin:16px 0 24px;">
-  <div style="flex:0 0 70%;">
+  <!-- Left column: figure -->
+  <div style="flex:0 0 50%;">
     <img src="assets/specification_curve.png" 
          alt="Linear models of Studies 1 and 2"
          style="width:100%; height:auto; display:block; margin:0;">
   </div>
 
+  <!-- Right column: text + legend -->
   <div style="flex:1; font-size:0.9em; color:#333;">
-    <p><strong>Specification Curve: Linear models of Studies 1 and 2.</strong> The figure shows the standardized beta coefficients of a broken social contract on antiestablishment sentiment, support for radical change, trust in democratic instituions, trust in mainstream national non-political institutions, and intent to vote in Nov. 2024 (data collected in March 2024 and May 2024). The specification curve demonstrates the robustness of the effect, controlling for a wide variety of covariates, all of which have been shown in the past to predict important political attitudes outcomes. Error bars represent 95% Confidence Intervals.</p>
+    <p><strong>Specification Curve: Linear models of Studies 1 and 2.</strong> 
+      The figure shows the standardized beta coefficients of a broken social contract on anti-establishment sentiment, support for radical change, trust in democratic political instituions, trust in non-political mainstream institutions. The specification curve demonstrates the robustness of the effect, controlling for a wide variety of covariates (see legend below), all of which have been shown in the past to predict important political attitudes outcomes. Error bars represent 95% Confidence Intervals.
+    </p>
+
+    <!-- Legend -->
+    <div style="
+      display:flex;
+      flex-wrap:wrap;
+      gap:20px;
+      font-size:14px;
+      line-height:1.8;
+      margin-top:12px;
+    ">
+      <!-- Left: outline shapes -->
+      <div style="flex:1 1 220px; min-width:200px;">
+        <div>
+          <svg width="16" height="16" style="vertical-align:middle; margin-right:8px;">
+            <circle cx="8" cy="8" r="6" fill="none" stroke="#000" stroke-width="2"/>
+          </svg>
+          No controls
+        </div>
+        <div>
+          <svg width="16" height="16" style="vertical-align:middle; margin-right:8px;">
+            <rect x="3" y="3" width="10" height="10" fill="none" stroke="#000" stroke-width="2"/>
+          </svg>
+          Conservatism + SDO
+        </div>
+        <div>
+          <svg width="16" height="16" style="vertical-align:middle; margin-right:8px;">
+            <rect x="3" y="3" width="10" height="10" fill="none" stroke="#000" stroke-width="2"
+                  transform="rotate(45 8 8)"/>
+          </svg>
+          Conservatism + SDO + Agreeableness
+        </div>
+        <div>
+          <svg width="16" height="16" style="vertical-align:middle; margin-right:8px;">
+            <polygon points="8,2 14,14 2,14" fill="none" stroke="#000" stroke-width="2"/>
+          </svg>
+          Conservatism + SDO + Agreeableness + Demographics
+        </div>
+        <div>
+          <svg width="16" height="16" style="vertical-align:middle; margin-right:8px;">
+            <polygon points="2,2 14,2 8,14" fill="none" stroke="#000" stroke-width="2"/>
+          </svg>
+          Conservatism + SDO + Agreeableness + Demographics + County measures
+        </div>
+      </div>
+
+      <!-- Right: color swatches -->
+      <div style="flex:1 1 120px; min-width:100px;">
+        <div>
+          <span style="display:inline-block; width:14px; height:14px; background:#0072B2; margin-right:8px; vertical-align:middle;"></span>
+          Study 1
+        </div>
+        <div>
+          <span style="display:inline-block; width:14px; height:14px; background:#D55E00; margin-right:8px; vertical-align:middle;"></span>
+          Study 2
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 ```
-
-## Dimension reduction
 
 <p>
 The written responses, albeit precise in capturing people’s intuitions, posed a problem in detecting the overarching values that people believe guide the U.S. on paper. To detect these overarching values while staying true to our data-driven approach, we reduced the dimensions of the free-written responses by conducting k-means clustering on the guiding values of the U.S. on paper. The 8-cluster solution that emerged reflects the following overarching values: democracy, equality, freedom, individualism, justice, the pursuit of happiness, the right to bear arms, and tolerance.
@@ -136,8 +195,8 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
             Freedom
           </th>
           <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
-            <img src="assets/keycluster_7.png" alt="Diversity" style="height:36px; display:block; margin:0 auto 4px;">
-            Diversity
+            <img src="assets/keycluster_7.png" alt="Tolerance" style="height:36px; display:block; margin:0 auto 4px;">
+            Tolerance
           </th>
           <th style="border:1px solid #ddd; padding:3px; vertical-align:top; text-align:left;">
             <img src="assets/keycluster_8.png" alt="Justice" style="height:36px; display:block; margin:0 auto 4px;">
@@ -227,18 +286,17 @@ To that end, we showed participants the wight overarching values that resulted f
 The broken promise score is a weighted mean of the “values delivered” score, weighted by the perceived priorities of the U.S., as indicated by the participant. To get to this weighted mean, each score assigned to the values delivered by the U.S. government was weighted by the participant-assigned priorities indicated in the “priorities of the U.S. on paper” measure. That is, we multiplied the score (0-100) of each value by the weight of the value and took the sum of all weighted value scores. Then, we reverse-scored that sum by subtracting it from 100 so that higher scores indicate a more broken promise.
 </p>
 
-<div style="margin-top: 0;">
-  <p style="margin:0 0 12px 0;">
-    <a href="./studies/study-2/app/index.html" target="_blank" rel="noopener"
-       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
-      EXPLORE CORRELATIONS ↗
-    </a>
-  </p>
-
+<div>
   <p style="margin:0;">
-    <a href="./studies/study-2/lm-table-app/index.html" target="_blank" rel="noopener"
-       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
-      EXPLORE OLS MODELS ↗
+    <a href="./studies/study-2/app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;
+              color:white;
+              padding:0.55em 0.9em;
+              border-radius:8px;
+              text-decoration:none;
+              display:inline-block;
+              margin:8px 0;">
+      EXPLORE CORRELATIONS ↗
     </a>
   </p>
 </div>
@@ -246,4 +304,78 @@ The broken promise score is a weighted mean of the “values delivered” score,
 <p>
 Multilevel linear models, controlling for conservatism, social dominance orientation, agreeableness, gender, race, ethnicity, income, education, age, county median income, county GINI coefficient (i.e., county inequality), and county density, show that a perceived broken social promise <strong>positively predicts anti-establishment sentiment</strong> (β = 0.34, F(19,794) = 10.18, 95% CI [0.27, 0.40], p < .001) <strong>and support for radical change</strong> (β = 0.30, F(19,794) = 8.84, 95% CI [0.24, 0.37], p < .001), and <strong>negatively predicts trust in political democratic institutions</strong> (β = -0.38, F(19,794) = -11.69, 95% CI [-0.44, -0.31], p < .001) and <strong>trust in non-political mainstream institutions</strong> (β = -0.37, F(19,794) = -11.53, 95% CI [-0.43, -0.30], p < .001).
 </p>
+
+<div>
+  <p style="margin:0;">
+    <a href="./studies/study-2/lm-table-app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;
+              color:white;
+              padding:0.55em 0.9em;
+              border-radius:8px;
+              text-decoration:none;
+              display:inline-block;
+              margin:8px 0;">
+      EXPLORE OLS MODELS ↗
+    </a>
+  </p>
+</div>
+
+<p>
+Next, we want to understand which of the eight overarching values is the most important for each of the political discontent outcome variables. That is, the extent to which the government is seen as breaking its promise on each of these values might variably explain anti-establishment sentiment, support for radical change, and trust in institutions. To understand which values matter most in explaining these outcomes, we inserted the weighted "promise kept" score for each of the values into models controlling for the same covariates as the ones listed above. To address the issue of multicolinearity, we isolated the unique variance explained by each broken promise by conducting an LMG Shapley Decomposition. We then verified the patterns with penalized and unpenalized Ridge and Lasso regressions (see Full Report for more). 
+</p>
+
+<p>
+It turns out that perceived violations of justice, democracy, and freedom matter the most for overall political discontent. Additionally, (1) anti-establishment sentiment is driven by violations of equality; (2) support for radical change is driven by violations of happiness and equality; (3) trust in democratic political institutions is driven by violations of tolerance and happiness; and (4) trust in non-political mainstream institutions is driven by violations of tolerance.
+</p>
+
+<div style="padding:12px 0;">
+  <img src="assets/lmg_results.png" alt="LMG Results" style="display:block; width:100%; height:auto;">
+</div>
+
+```{=html}
+<div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin:16px 0 24px;">
+
+  <!-- Left: text -->
+  <div style="flex:1 1 340px; min-width:260px; font-size:0.95em; color:#333;">
+    <p>Study 2 also allowed us to compare social contract as they are seen by different segments of the population. For example, conservatives might believe and a very different social contract than liberals, and they may also see the government as upholding different parts of it differently. As you can see, people of different ideologies expect different things from the social contract. The light-shaded fill in the plot represent what people believe the U.S. stands for on paper, whereas the dark-shaded shapes inside represent what people believe the U.S. delivers in practice. You can think of them as different social contracts for different people. Rhere are, of course, many other ways to break down the sample. In the Cross-Sections app, you can break the data along big five personality traits, party affiliation, education, income, age, race, gender, region, and state.</p>
+  </div>
+
+  <!-- Middle: image -->
+  <div style="flex:2 1 300px; min-width:300px;">
+    <img src="assets/by_ideology.png" alt="Social contract radar charts by ideology"
+         style="display:block; width:100%; height:auto; margin:0;">
+  </div>
+
+  <!-- Right: button -->
+  <div style="flex:0 1 180px; min-width:160px; margin-left:auto; text-align:right; white-space:nowrap;">
+    <p style="margin:0;">
+      <a href="./studies/study-2/different-contracts-app/index.html" target="_blank" rel="noopener"
+         style="background:#0b69ff; color:#fff; padding:0.55em 0.9em; border-radius:8px; text-decoration:none; display:inline-block; margin:8px 0; text-align:center;">
+        EXPLORE CROSS-SECTIONS ↗
+      </a>
+    </p>
+  </div>
+
+</div>
+
+
+```
+
+<div>
+  <p style="margin:0;">
+    <a href="./studies/study-2/different-contracts-app/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;
+              color:white;
+              padding:0.55em 0.9em;
+              border-radius:8px;
+              text-decoration:none;
+              display:inline-block;
+              margin:8px 0;">
+      EXPLORE CROSS-SECTIONS ↗
+    </a>
+  </p>
+</div>
+
+
+
 ## Study 3
