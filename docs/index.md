@@ -361,21 +361,6 @@ It turns out that perceived violations of justice, democracy, and freedom matter
 
 ```
 
-<div>
-  <p style="margin:0;">
-    <a href="./studies/study-2/different-contracts-app/index.html" target="_blank" rel="noopener"
-       style="background:#0b69ff;
-              color:white;
-              padding:0.55em 0.9em;
-              border-radius:8px;
-              text-decoration:none;
-              display:inline-block;
-              margin:8px 0;">
-      EXPLORE CROSS-SECTIONS ↗
-    </a>
-  </p>
-</div>
-
 
 
 ## Study 3
