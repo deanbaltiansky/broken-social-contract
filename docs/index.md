@@ -8,6 +8,8 @@ output:
 
 # Political Discontent is Driven by A Broken Social Contract
 
+By Dean Baltiansky
+
 <img src="assets/banner-flag.png" alt="Flag Banner" style="width:100%; height:auto;">
 
 ## Background

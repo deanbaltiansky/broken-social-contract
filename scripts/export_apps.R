@@ -1,13 +1,15 @@
 # scripts/export_apps.R
-# Export Shiny apps and (re)render docs/index.md -> docs/index.html
+# Export Shiny apps and (re)render docs/index.(R)md -> docs/index.html
 # - Legacy main app:        study-*/app                      -> docs/studies/<study>/app
 # - Sibling apps (flat):    study-*/X/app.R                  -> docs/studies/<study>/X
 # - Sibling apps (nested):  study-*/X/app/app.R              -> docs/studies/<study>/X
 # - Sub-apps under app/:    study-*/app/Y[/app].R            -> docs/studies/<study>/Y
 
 # install.packages(c("fs","shinylive","rmarkdown"))  # run once if needed
-library(fs)
-library(shinylive)
+suppressPackageStartupMessages({
+  library(fs)
+  library(shinylive)
+})
 
 is_shiny_app_dir <- function(p) {
   file_exists(path(p, "app.R")) ||
@@ -27,8 +29,8 @@ study_dirs <- dir_ls(".", type = "directory", glob = "study-*", recurse = FALSE)
 if (length(study_dirs) == 0) {
   message("ℹ️  No study-* directories found. Nothing to export.")
 } else {
-  dir_create("docs", recurse = TRUE, showWarnings = FALSE)
-  file.create(path("docs", ".nojekyll"))  # keep for ShinyLive
+  dir_create("docs", recurse = TRUE)
+  file.create(path("docs", ".nojekyll"))  # keep for GitHub Pages / ShinyLive
   
   for (study_dir in study_dirs) {
     study_name <- path_file(study_dir)
@@ -78,35 +80,38 @@ if (length(study_dirs) == 0) {
   
   message("🧩 Export complete. Rendering homepage…")
   
-  # ---- Render docs/index.md -> docs/index.html (STRICT: fail on issues) ----
-  md_path <- path("docs", "index.md")
-  if (file_exists(md_path)) {
+  # ---- Render docs/index.(R)md -> docs/index.html (YAML-driven) ----
+  # Prefer index.Rmd if present; else index.md
+  input_candidates <- c(path("docs", "index.Rmd"), path("docs", "index.md"))
+  md_path <- input_candidates[file_exists(input_candidates)][1]
+  
+  if (!is.na(md_path) && nzchar(md_path)) {
     if (!requireNamespace("rmarkdown", quietly = TRUE)) {
       stop("❌ rmarkdown is not installed. Install it with install.packages('rmarkdown') and re-run.")
     }
-    # Ensure we don't accidentally publish a stale index.html
     out_file <- path("docs", "index.html")
     tryCatch(
       {
         rmarkdown::render(
-          input         = md_path,
-          output_format = "html_document",
-          output_file   = "index.html",
-          output_dir    = "docs",
-          envir         = new.env(parent = emptyenv()),
-          quiet         = TRUE
+          input       = md_path,
+          # IMPORTANT: no output_format here → respect YAML (toc_float, code_folding, etc.)
+          output_file = "index.html",
+          output_dir  = "docs",
+          envir       = new.env(parent = emptyenv()),
+          quiet       = TRUE,
+          clean       = TRUE
         )
         if (!file_exists(out_file)) {
           stop("Render reported success but docs/index.html was not created.")
         }
-        message("✅ Rendered docs/index.md -> docs/index.html")
+        message("✅ Rendered ", md_path, " -> docs/index.html")
       },
       error = function(e) {
-        stop(paste0("❌ Failed to render docs/index.md: ", conditionMessage(e)))
+        stop(paste0("❌ Failed to render ", md_path, ": ", conditionMessage(e)))
       }
     )
   } else {
-    message("ℹ️  docs/index.md not found; skipping homepage render (existing docs/index.html, if any, will be served).")
+    message("ℹ️  docs/index.Rmd or docs/index.md not found; skipping homepage render (existing docs/index.html, if any, will be served).")
   }
   
   message("✅ Done. Apps are under docs/studies/<study>/<app_folder>, homepage at docs/index.html")
