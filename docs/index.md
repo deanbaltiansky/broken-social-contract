@@ -360,3 +360,60 @@ It turns out that perceived violations of justice, democracy, and freedom matter
 ```
 
 # Study 3
+
+<div style="margin-top: 0;">
+  <p style="margin:0 0 12px 0;">
+    <a href="./studies/study-3/index.html" target="_blank" rel="noopener"
+       style="background:#0b69ff;color:white;padding:0.55em 0.9em;border-radius:8px;text-decoration:none;display:inline-block;margin:0;">
+      FULL REPORT ↗
+    </a>
+  </p>
+</div>
+
+<p>
+The purpose of Study 3 was to provide experimental evidence for the causal claim that a broken social contract leads to political discontent. To that end, we applied for the Time-sharing Experiments for the Social Studies (<a href="https://tessexperiments.org/" target="_blank">TESS</a>) federal research grant. After a rigorous peer review process and collaborative study design, we partnered with <a href="https://www.norc.org/" target="_blank">NORC</a> to access the nationally representative <a href="https://amerispeak.norc.org/" target="_blank">AmeriSpeak</a> participant pool. We ended up with a final representative sample of 1823 Americans.
+</p>
+
+<p>
+To rule out any other potential cause of political discontent, we employed a tightly controlled experimental manipulation by which participants were randomly assigned to one of three conditions: (1) the *promise kept* condition; (2) the *promise broken* condition; or (3) the *control* condition. This manipulation was intended to prime participants with their intuitive sense of the ways in which the social contract was either broken, maintained, or neither. Then, we measured anti-establishment sentiment, trust in government, and support for radical change. Because there was random assignment to condition, with enough participants, any difference between condition in the dependent variable would indicate a **causal** impact of the independent variable: the extent to which the social contract is broken.
+</p>
+
+<p>
+In a novel experimental design, participants listed, in open-text form, five values that they believe guide the U.S. on paper (i.e., the Constitution). Then, they indicated which of the values they listed is most important to the U.S. on paper. This value was then embedded into the experimental manipulation. Participants in the *promise kept* condition wrote 2-3 sentences about the ways in which the U.S. is living up to its promise of that value. Participants in the *promise broken* condition wrote 2-3 sentences about the ways in which the U.S. is NOT living up to its promise of that value. Participants in the *control* condition provided a definition of that value.
+</p>
+
+<p>
+Then, they completed measures of anti-establishment sentiment, trust in government, and support for radical change.
+</p>
+
+Examining only the two experimental conditions, we conducted a set of two-sample t-tests. Participants in the *promise broken* condition reported:\
+(1) **higher anti-establishment sentiment** (*M* = 5.18; *SD* = 1.14) than participants in the *promise kept* condition (*M* = 4.93; *SD* = 1.10), *t*(1158.90) = 3.92, 95% CI = [0.13, 0.39], *p* < .001, Cohen's *d* = 0.23;\
+(2) **lower trust in government** (*M* = 2.85; *SD* = 1.34) than participants in the *promise kept* condition (*M* = 3.01; *SD* = 1.36), *t*(1153.65) = -2.03, 95% CI = [-0.32, -0.01], *p* = .043, Cohen's *d* = -0.12; and\
+(3) **higher support for radical change** (*M* = 5.06; *SD* = 1.61) than participants in the *promise kept* condition (*M* = 4.84; *SD* = 1.68), *t*(1148.60) = 2.34, 95% CI = [0.04, 0.42], *p* = .019, Cohen's *d* = 0.14. 
+
+<!-- begin: text + image split (BSC) -->
+<div class="bsc-flex" style="display:flex; align-items:flex-start; gap:16px; margin:12px 0;">
+  <div class="bsc-text" style="flex:0 0 30%; max-width:30%; line-height:1.5;">
+    <p><strong>Examining only the two experimental conditions</strong>, we conducted a set of two-sample t-tests. Participants in the <em>promise broken</em> condition reported:<br>
+    (1) <strong>higher anti-establishment sentiment</strong> (<em>M</em> = 5.18; <em>SD</em> = 1.14) than participants in the <em>promise kept</em> condition (<em>M</em> = 4.93; <em>SD</em> = 1.10), <em>t</em>(1158.90) = 3.92, 95% CI = [0.13, 0.39], <em>p</em> &lt; .001, Cohen’s <em>d</em> = 0.23;<br>
+    (2) <strong>lower trust in government</strong> (<em>M</em> = 2.85; <em>SD</em> = 1.34) than participants in the <em>promise kept</em> condition (<em>M</em> = 3.01; <em>SD</em> = 1.36), <em>t</em>(1153.65) = -2.03, 95% CI = [-0.32, -0.01], <em>p</em> = .043, Cohen’s <em>d</em> = -0.12; and<br>
+    (3) <strong>higher support for radical change</strong> (<em>M</em> = 5.06; <em>SD</em> = 1.61) than participants in the <em>promise kept</em> condition (<em>M</em> = 4.84; <em>SD</em> = 1.68), <em>t</em>(1148.60) = 2.34, 95% CI = [0.04, 0.42], <em>p</em> = .019, Cohen’s <em>d</em> = 0.14.</p>
+  </div>
+
+  <figure class="bsc-img" style="flex:0 0 70%; max-width:70%; margin:0;">
+    <img src="assets/study-3.png" alt="Group differences across outcomes"
+         style="width:100%; height:auto; display:block;">
+    <!-- Optional caption:
+    <figcaption style="font-size:0.9em; color:#666; margin-top:6px;">Caption text here.</figcaption>
+    -->
+  </figure>
+</div>
+
+<style>
+/* Make it stack nicely on narrow screens */
+@media (max-width: 900px){
+  .bsc-flex{ flex-direction:column; }
+  .bsc-text, .bsc-img{ flex:0 0 auto; max-width:100%; }
+}
+</style>
+<!-- end: text + image split (BSC) -->
