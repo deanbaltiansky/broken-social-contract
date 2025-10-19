@@ -1,0 +1,239 @@
+---
+title: "Broken Social Contract"
+subtitle: "Study 3: Analysis Report"
+Author: "Dean Baltiansky"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+knit: (function(input_file, encoding) { rmarkdown::render(input_file, encoding = encoding, output_file = 'index.html', output_dir = here::here('docs','studies','study-3')); })
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r,include=FALSE}
+library(apa)
+library(see)
+library(lme4)
+library(lmerTest)
+library(interactions)
+library(jtools)
+library(gridExtra)
+library(kableExtra)
+library(apaTables)
+library(papaja)
+library(knitr)
+library(psych)
+library(GPArotation)
+library(PerformanceAnalytics)
+library(gt)
+library(tidytext)
+library(textdata)
+library(tidyverse)
+library(diagram)
+library(factoextra)
+library(SnowballC)
+library(hunspell)
+library(quanteda)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-3/data/"
+
+df_bsc <- readr::read_csv(paste0(repo_url,"df_bsc.csv"), show_col_types = FALSE)
+df_bsc_elg <- readr::read_csv(paste0(repo_url,"df_bsc_elg.csv"), show_col_types = FALSE)
+```
+
+```{r,include=FALSE}
+df_bsc <- df_bsc %>% 
+  mutate(income = factor(INCOME,c("under $5,000",
+                                  "$5,000 to $9,999",
+                                  "$10,000 to $14,999",
+                                  "$15,000 to $19,999",
+                                  "$20,000 to $24,999",
+                                  "$25,000 to $29,999",
+                                  "$30,000 to $34,999",
+                                  "$35,000 to $39,999",
+                                  "$40,000 to $49,999",
+                                  "$50,000 to $59,999",
+                                  "$60,000 to $74,999",
+                                  "$75,000 to $84,999",
+                                  "$85,000 to $99,999",
+                                  "$100,000 to $124,999",
+                                  "$125,000 to $149,999",
+                                  "$150,000 to $174,999",
+                                  "$175,000 to $199,999",
+                                  "$200,000 or more")),
+         edu = factor(EDUC5,c("less HS",
+                            "HS",
+                            "some coll",
+                            "bachelors",
+                            "masters")),
+         income_num = as.numeric(income),
+         edu_num = as.numeric(edu))
+
+df_bsc_elg <- df_bsc %>% 
+  filter(exclude == 0)
+```
+
+# Background
+
+The purpose of Study 3 was to test if the relationship between a broken social contract is and political discontent is a causal relationship. To that end, we applied for the Time-sharing Experiments for the Social Studies (<a href="https://tessexperiments.org/" target="_blank">TESS</a>) federal research grant. After a rigorous peer review process and collaborative study design, we partnered with <a href="https://www.norc.org/" target="_blank">NORC</a> to access the nationally representative <a href="https://amerispeak.norc.org/" target="_blank">AmeriSpeak</a> participant pool.\
+\
+In a three-cell experimental design, participants listed, in open-text form, five values that they believe guide the U.S. on paper (i.e., the Constitution). Then, they indicated which of the values they listed is most important to the U.S. on paper.\
+\
+This value was then embedded into the experimental manipulation. Participants were randomly assigned to one of three conditions: (1) the *promise kept* condition; (2) the *promise broken* condition; and (3) the *control* condition. Those in the *promise kept* condition wrote 2-3 sentences about the ways in which the U.S. is living up to its promise of that value. Participants in the *promise broken* condition wrote 2-3 sentences about the ways in which the U.S. is NOT living up to its promise of that value. Participants in the *control* condition provided a definition of that value.\
+\
+Then, they completed five randomly-ordered DV's: (1) anti-establishment sentiment; (2) American pride; (3) trust in government; (4) satisfaction with American democracy; and (5) support for radical change.
+
+# Hypotheses
+
+1. Participants in the *promise broken* condition will report **higher anti-establishment sentiment** than participants in the *promise kept* condition.\
+2. Participants in the *promise broken* condition will report **lower trust in government** than participants in the *promise kept* condition.\
+3. Participants in the *promise broken* condition will report **higher support for radical change** than participants in the *promise kept* condition.\
+\
+We did not have specific hypotheses about the control condition. This is because it wasn't clear, a-priori, whether the baseline of participants is that the promise of the social contract is broken, or whether it is that the promise is kept. Therefore, any analysis that includes all three conditions is exploratory. Any difference that emerges between one of the experimental conditions and the control condition helps us determine the direction in which the manipulation operates: does it increase or decrease baseline political discontent?\
+\
+Additionally, we did not have an a-priori hypotheses about the effect of condition on American pride and satisfaction with American democracy. These two DV's were added in consultation with TESS, on top of the three DV's that we suggested after Studies 1 and 2. Therefore, any analysis we conduct with these DV's is exploratory.
+
+# Data collection
+
+Data collection was conducted by NORC between 11/18/2024 and 12/4/2024. After data collection, we manually excluded participants who did not comply with the manipulation instructions at all. Elgibility is reported below:
+
+```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
+eligible_N <- df_bsc %>% 
+  group_by(exclude) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  filter(exclude == 0) %>% 
+  select(N) %>% 
+  unname() %>% 
+  unlist()
+
+df_bsc %>% 
+  group_by(exclude) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+Great. That leaves us with `r eligible_N` eligible participants.
+
+# Demographics
+
+## Race and ethnicity
+
+```{r,results='asis',echo=TRUE,warning=FALSE}
+df_bsc_elg %>% 
+  group_by(RACETHNICITY) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Gender
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(GENDER) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Age
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  summarise(age_mean = round(mean(AGE,na.rm = T),2),
+            age_sd = round(sd(AGE,na.rm = T),2)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Education
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(edu) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Income
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+income_med <- median(df_bsc_elg$income_num,na.rm = T)
+all_incomes <- c("under $5,000",
+                 "$5,000 to $9,999",
+                 "$10,000 to $14,999",
+                 "$15,000 to $19,999",
+                 "$20,000 to $24,999",
+                 "$25,000 to $29,999",
+                 "$30,000 to $34,999",
+                 "$35,000 to $39,999",
+                 "$40,000 to $49,999",
+                 "$50,000 to $59,999",
+                 "$60,000 to $74,999",
+                 "$75,000 to $84,999",
+                 "$85,000 to $99,999",
+                 "$100,000 to $124,999",
+                 "$125,000 to $149,999",
+                 "$150,000 to $174,999",
+                 "$175,000 to $199,999",
+                 "$200,000 or more")
+income_med_char <- all_incomes[income_med]
+
+df_bsc_elg %>% 
+  ggplot(aes(x = income)) +
+  geom_bar() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  coord_flip()
+```
+
+Median = `r income_med_char`

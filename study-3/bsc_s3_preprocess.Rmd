@@ -25,13 +25,13 @@ library(tidyverse)
 repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-3/data/"
 
 df_deid <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
-county_data <- readr::read_csv(paste0(repo_url,"exclusions.csv"), show_col_types = FALSE)
+exclusions <- readr::read_csv(paste0(repo_url,"exclusions.csv"), show_col_types = FALSE)
 ```
 
 rename vars
 
 ```{r}
-df_nov24 <- df_nov24_raw %>% 
+df_bsc <- df_deid %>% 
   rename(PID = CaseId,
          cond = RND_00,
          order_responses = RND_01,
@@ -66,7 +66,7 @@ df_nov24 <- df_nov24_raw %>%
 recode
 
 ```{r}
-df_nov24 <- df_nov24 %>% 
+df_bsc <- df_bsc %>% 
   mutate(cond = case_when(cond == 0 ~ "kept",
             cond == 1 ~ "brkn",
             cond == 2 ~ "ctrl",
@@ -164,7 +164,7 @@ df_nov24 <- df_nov24 %>%
 reverse-score
 
 ```{r}
-df_nov24 <- df_nov24 %>% 
+df_bsc <- df_bsc %>% 
   mutate(antiest_4R = 8 - antiest_4,
          distrust = 8 - trustgov)
 ```
@@ -172,7 +172,7 @@ df_nov24 <- df_nov24 %>%
 mean score
 
 ```{r}
-df_nov24 <- df_nov24 %>% 
+df_bsc <- df_bsc %>% 
   rowwise() %>% 
   mutate(antiest = mean(c(antiest_1,
                           antiest_2,
@@ -187,7 +187,7 @@ df_nov24 <- df_nov24 %>%
 add exclusions that were checked manually
 
 ```{r}
-df_nov24 <- df_nov24 %>% 
+df_bsc <- df_bsc %>% 
   left_join(exclusions,by = "PID")
 ```
 
@@ -195,7 +195,7 @@ df_nov24 <- df_nov24 %>%
 take only necessary variables
 
 ```{r}
-df_bsc <- df_nov24 %>% 
+df_bsc <- df_bsc %>% 
   select(PID,
          cond,
          antiest,
@@ -231,6 +231,7 @@ df_bsc <- df_nov24 %>%
 write
 
 ```{r}
-write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/November 2024/0166 TESS Baltiansky/data/df_bsc.csv",row.names = F)
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-3/data/df_bsc.csv",row.names = F)
+write.csv(df_bsc %>% filter(exclude == 0),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-3/data/df_bsc_elg.csv",row.names = F)
 ```
 
