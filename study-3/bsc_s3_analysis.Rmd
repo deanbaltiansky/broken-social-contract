@@ -237,3 +237,1046 @@ df_bsc_elg %>%
 ```
 
 Median = `r income_med_char`
+
+# Measures
+
+## Value lists
+
+Since its independence and onwards, the formation of the United States as a sovereign country was based on a number of values, all of which were enshrined in the constitution. This document has evolved since it was first written.\
+\
+When it comes to the PROMISE of the United States, what do you think are the values that this country stands for?\
+\
+Please list FIVE values.\
+\
+*Top 50 most mentioned:*
+
+```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE}
+df_bsc_elg %>%
+  select(PID,val_1:val_5) %>%
+  pivot_longer(-PID,
+               names_to = "val_num",
+               values_to = "value") %>% 
+  filter(value != "98") %>% 
+  filter(value != "") %>%
+  filter(!is.na(value)) %>% 
+  mutate(value = str_to_lower(value)) %>% 
+  group_by(value) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(N)) %>% 
+  slice(1:50) %>% 
+  dplyr::select(N,Perc,value) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                position = "left") %>% 
+  scroll_box(width = "100%", height = "400px")
+```
+
+## Top Values
+
+Participants were then shown the values that they listed, and were asked, of these values, which one did they believe is most important to the U.S.’s promise.\
+\
+Top 50 most mentioned:
+
+```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE}
+df_bsc_elg %>%
+  mutate(top_value_char = str_to_lower(top_value_char)) %>% 
+  group_by(top_value_char) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  arrange(desc(N)) %>% 
+  dplyr::select(N,Perc,top_value_char) %>% 
+  slice(1:50) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                position = "left") %>% 
+  scroll_box(width = "100%", height = "400px")
+```
+
+## Manipulation responses
+
+### Promise Kept Condition
+
+In 2-3 sentences, please describe the ways in which the U.S. is living up to its promise of [TOP-VALUE].
+
+```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE,eval=FALSE}
+df_bsc_elg %>%
+  filter(cond == "kept") %>% 
+  mutate(response = iconv(response,from =  "UTF-8", to = "ASCII", sub = "")) %>% 
+  rename(top_value = top_value_char) %>% 
+  select(PID,top_value,response) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                position = "left") %>% 
+  scroll_box(width = "100%", height = "400px")
+```
+
+### Promise Broken Condition
+
+In 2-3 sentences, please describe the ways in which the U.S. is NOT living up to its promise of [TOP-VALUE].
+
+```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE,eval=FALSE}
+df_bsc_elg %>%
+  filter(cond == "brkn") %>% 
+  mutate(response = iconv(response,from =  "UTF-8", to = "ASCII", sub = "")) %>% 
+  rename(top_value = top_value_char) %>% 
+  select(top_value,response) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                position = "left") %>% 
+  scroll_box(width = "100%", height = "400px")
+```
+
+### Control Condition
+
+In 2-3 sentences, please define [TOP-VALUE].
+
+```{r,echo=TRUE,results='asis',warning=FALSE,message=FALSE,eval=FALSE}
+df_bsc_elg %>%
+  filter(cond == "ctrl") %>% 
+  mutate(response = iconv(response,from =  "UTF-8", to = "ASCII", sub = "")) %>% 
+  rename(top_value = top_value_char) %>% 
+  select(top_value,response) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                position = "left") %>% 
+  scroll_box(width = "100%", height = "400px")
+```
+
+## Anti-Establishment Sentiment
+
+```{r,include=F}
+alpha_table <- df_bsc_elg %>% 
+  dplyr::select(antiest_1,
+                antiest_2,
+                antiest_3,
+                antiest_4R) %>% 
+  psych::alpha()
+
+alpha <- alpha_table$total[1]
+```
+
+To what extent do you agree or disagree with the following statements? (1 = *Strongly Disagree* to 7 = *Strongly Agree*)\
+\
+1. The US’s economy is rigged to advantage the rich and powerful\
+2. Traditional politicians and parties don’t care about people like me\
+3. Experts in this country don’t understand the lives of people like me\
+4. Most of the time we can trust people in the government to do what is right [R]
+\
+alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = antiest)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_bsc_elg$antiest,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Trust in government
+
+To what extent do you trust the government in Washington, across parties and administrations, to do what is right? (1 = *Not at All* to 7 = *A Great Deal*)
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = trustgov)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_bsc_elg$trustgov,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Support for radical change
+
+To what extent do you agree or disagree with the following statement? (1 = *Strongly Disagree* to 7 = *Strongly Agree*)\
+\
+The way this country works needs to be radically changed.
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = radchange)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_bsc_elg$radchange,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## American Pride
+
+How proud are you to be an American? (1 = *Not at all Proud* to 5 = *Extremely Proud*)
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = ampride)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,5,1),
+                     limits = c(0,6)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_bsc_elg$ampride,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+## Satisfaction with American democracy
+
+How satisfied are you with the way democracy is working in the United States? (1 = *Extremely Dissatisfied* to 7 = *Extremely Satisfied*)
+
+```{r,fig.align='left',echo=TRUE,warning=FALSE,fig.dim=c(5,3)}
+df_bsc_elg %>% 
+  ggplot(aes(x = demsatis)) +
+  geom_histogram(fill = "lightblue",
+                 color = NA,
+                 binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_bsc_elg$demsatis,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_text(color = "black",
+                                   face = "bold"))
+```
+
+# Analysis
+
+## Confirmatory Analyses
+
+First, I will conduct analyses that directly test our hypotheses:\
+\
+1. Participants in the *promise broken* condition will report **higher anti-establishment sentiment** than participants in the *promise kept* condition.\
+2. Participants in the *promise broken* condition will report **lower trust in government** than participants in the *promise kept* condition.\
+3. Participants in the *promise broken* condition will report **higher support for radical change** than participants in the *promise kept* condition.\
+\
+Therefore, these analyses will only compare those two conditions without adjusting for multiple comparisons.\
+\
+Then, I will conduct exploratory analyses to examine the control condition as well and the two other DV's.
+
+### Anti-establishment sentiment
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  filter(cond != "ctrl") %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(antiest,na.rm = T),
+            sd = sd(antiest,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+Two-sample t-test:
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+m1 <- rstatix::t_test(antiest ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F,detailed = T)
+m2 <- rstatix::cohens_d(antiest ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F)
+
+d = round(m2$effsize,2)
+
+m1 %>% 
+  select(statistic,df,p,conf.low,conf.high) %>% 
+  mutate(d = d) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(4,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  filter(cond != "ctrl") %>% 
+  dplyr::select(cond,antiest) %>% 
+  ggplot(aes(x = cond,y = antiest,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### Trust in government
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  filter(cond != "ctrl") %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(trustgov,na.rm = T),
+            sd = sd(trustgov,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+Two-sample t-test:
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+m1 <- rstatix::t_test(trustgov ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F,detailed = T)
+m2 <- rstatix::cohens_d(trustgov ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F)
+
+d = round(m2$effsize,2)
+
+m1 %>% 
+  select(statistic,df,p,conf.low,conf.high) %>% 
+  mutate(d = d) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(4,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  filter(cond != "ctrl") %>% 
+  dplyr::select(cond,trustgov) %>% 
+  ggplot(aes(x = cond,y = trustgov,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### Support for radical change
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  filter(cond != "ctrl") %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(radchange,na.rm = T),
+            sd = sd(radchange,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+Two-sample t-test:
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+m1 <- rstatix::t_test(radchange ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F,detailed = T)
+m2 <- rstatix::cohens_d(radchange ~ cond,data = df_bsc_elg %>% filter(cond != "ctrl"),paired = F)
+
+d = round(m2$effsize,2)
+
+m1 %>% 
+  select(statistic,df,p,conf.low,conf.high) %>% 
+  mutate(d = d) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(4,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  filter(cond != "ctrl") %>% 
+  dplyr::select(cond,radchange) %>% 
+  ggplot(aes(x = cond,y = radchange,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+## Exploratory Analyses
+
+### Anti-establishment sentiment
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(antiest,na.rm = T),
+            sd = sd(antiest,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+\
+**One-way ANOVA Omnibus Effect:**\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+anova_apa(aov(antiest ~ cond,data = df_bsc_elg),
+      format = "rmarkdown",
+      effect = "cond")
+```
+\
+\
+**Tukey-HSD Post-Hoc Comparisons:** (adjusting for multiple comparisons)\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+btwn <- TukeyHSD(aov(antiest ~ cond,data = df_bsc_elg))
+
+btwn$cond %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(7,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  dplyr::select(cond,antiest) %>% 
+  ggplot(aes(x = cond,y = antiest,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkblue",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                               "darkblue",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### Trust in Government
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(trustgov,na.rm = T),
+            sd = sd(trustgov,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+\
+**One-way ANOVA Omnibus Effect:**\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+anova_apa(aov(trustgov ~ cond,data = df_bsc_elg),
+      format = "rmarkdown",
+      effect = "cond")
+```
+\
+\
+**Tukey-HSD Post-Hoc Comparisons:** (adjusting for multiple comparisons)\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+btwn <- TukeyHSD(aov(trustgov ~ cond,data = df_bsc_elg))
+
+btwn$cond %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(7,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  dplyr::select(cond,trustgov) %>% 
+  ggplot(aes(x = cond,y = trustgov,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkblue",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                               "darkblue",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### Support for radical change
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(radchange,na.rm = T),
+            sd = sd(radchange,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+\
+**One-way ANOVA Omnibus Effect:**\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+anova_apa(aov(radchange ~ cond,data = df_bsc_elg),
+      format = "rmarkdown",
+      effect = "cond")
+```
+\
+\
+**Tukey-HSD Post-Hoc Comparisons:** (adjusting for multiple comparisons)\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+btwn <- TukeyHSD(aov(radchange ~ cond,data = df_bsc_elg))
+
+btwn$cond %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(7,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  dplyr::select(cond,radchange) %>% 
+  ggplot(aes(x = cond,y = radchange,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkblue",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                               "darkblue",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### American pride
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(ampride,na.rm = T),
+            sd = sd(ampride,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+\
+**One-way ANOVA Omnibus Effect:**\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+anova_apa(aov(ampride ~ cond,data = df_bsc_elg),
+      format = "rmarkdown",
+      effect = "cond")
+```
+\
+\
+**Tukey-HSD Post-Hoc Comparisons:** (adjusting for multiple comparisons)\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+btwn <- TukeyHSD(aov(ampride ~ cond,data = df_bsc_elg))
+
+btwn$cond %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(7,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  dplyr::select(cond,ampride) %>% 
+  ggplot(aes(x = cond,y = ampride,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkblue",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                               "darkblue",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,5),
+                     breaks = seq(1,5,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+### Satisfaction with American democracy
+
+```{r,echo=TRUE,results='asis',warning=FALSE}
+df_bsc_elg %>% 
+  group_by(cond) %>% 
+  summarise(N = n(),
+            mean = mean(demsatis,na.rm = T),
+            sd = sd(demsatis,na.rm = T)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+\
+**One-way ANOVA Omnibus Effect:**\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+anova_apa(aov(demsatis ~ cond,data = df_bsc_elg),
+      format = "rmarkdown",
+      effect = "cond")
+```
+\
+\
+**Tukey-HSD Post-Hoc Comparisons:** (adjusting for multiple comparisons)\
+\
+```{r,echo=FALSE,results='asis',fig.align='left',message=FALSE}
+btwn <- TukeyHSD(aov(demsatis ~ cond,data = df_bsc_elg))
+
+btwn$cond %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+```{r,fig.align='left',fig.dim=c(7,4),echo=F,message=F,warning=F}
+df_bsc_elg %>%
+  dplyr::select(cond,demsatis) %>% 
+  ggplot(aes(x = cond,y = demsatis,fill = cond)) +
+  scale_color_manual(values = c("darkred",
+                                "darkblue",
+                                "darkgreen")) +
+  scale_fill_manual(values = c("darkred",
+                               "darkblue",
+                                "darkgreen")) +
+  geom_violinhalf(position = position_nudge(0.1),
+                  #fill = "gray23",
+                  alpha = 0.8,
+                  size = 1,
+                  color = NA) +
+  # geom_jitter(alpha = 0.6,
+  #            size = 1,
+  #            position = position_jitter(0.15)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 0.8,
+               geom = "errorbar",
+               width = 0.05,
+               color = "grey50",
+               position = position_dodge(width = 0)) +
+  # stat_summary(fun = "mean",
+  #              geom = "linerange",
+  #              color = "black",
+  #              size = 3,
+  #              position = position_dodge(width = 0)) +
+  stat_summary(fun = "mean",
+               shape = 16,
+               geom = "point",
+               size = 1.5,
+               color = "black",
+               position = position_dodge(width = 0)) +
+  scale_x_discrete(expand = c(0.2,0)) +
+  scale_y_continuous(limits = c(1,7),
+                     breaks = seq(1,7,1)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(color = "grey66",
+                                          linetype = "dashed"),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12,
+                                   hjust = -1),
+        axis.text.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.y = element_text(color = "black",
+                                   face = "bold",
+                                   size = 12),
+        axis.title.x = element_blank(),
+        legend.position = "none")
+```
