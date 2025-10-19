@@ -1,0 +1,236 @@
+---
+title: "bsc_s3_preprocess"
+output: html_document
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-3/data/"
+
+df_deid <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
+county_data <- readr::read_csv(paste0(repo_url,"exclusions.csv"), show_col_types = FALSE)
+```
+
+rename vars
+
+```{r}
+df_nov24 <- df_nov24_raw %>% 
+  rename(PID = CaseId,
+         cond = RND_00,
+         order_responses = RND_01,
+         val_1 = Q1A,
+         val_2 = Q1B,
+         val_3 = Q1C,
+         val_4 = Q1D,
+         val_5 = Q1E,
+         top_value_num = Q2,
+         top_value_char = Q2_TEXT,
+         response_cond1 = CONDITION1,
+         response_cond2 = CONDITION2,
+         response_cond3 = CONDITION3,
+         order_dvs_first = ORDERA,
+         order_dvs_second = ORDERB,
+         order_dvs_third = ORDERC,
+         order_dvs_fourth = ORDERD,
+         order_dvs_fifth = ORDERE,
+         antiest_1 = Q3A,
+         antiest_2 = Q3B,
+         antiest_3 = Q3C,
+         antiest_4 = Q3D,
+         ampride = Q4,
+         trustgov = Q5,
+         demsatis = Q6,
+         radchange = Q7,
+         vote_bin = NOV5,
+         vote_who = NOV7,
+         vote_whoelse = NOV7_OE)
+```
+
+recode
+
+```{r}
+df_nov24 <- df_nov24 %>% 
+  mutate(cond = case_when(cond == 0 ~ "kept",
+            cond == 1 ~ "brkn",
+            cond == 2 ~ "ctrl",
+            .default = NA)) %>% 
+  mutate(response = case_when(cond == "kept" ~ response_cond1,
+                              cond == "brkn" ~ response_cond2,
+                              cond == "ctrl" ~ response_cond3,
+                              .default = NA)) %>% 
+  mutate(order_dvs_first = case_when(order_dvs_first == 1 ~ "antiest",
+                                     order_dvs_first == 2 ~ "ampride",
+                                     order_dvs_first == 3 ~ "trustgov",
+                                     order_dvs_first == 4 ~ "demsatis",
+                                     order_dvs_first == 5 ~ "radchange",
+                                     .default = NA),
+         order_dvs_second = case_when(order_dvs_second == 1 ~ "antiest",
+                                     order_dvs_second == 2 ~ "ampride",
+                                     order_dvs_second == 3 ~ "trustgov",
+                                     order_dvs_second == 4 ~ "demsatis",
+                                     order_dvs_second == 5 ~ "radchange",
+                                     .default = NA),
+         order_dvs_third = case_when(order_dvs_third == 1 ~ "antiest",
+                                     order_dvs_third == 2 ~ "ampride",
+                                     order_dvs_third == 3 ~ "trustgov",
+                                     order_dvs_third == 4 ~ "demsatis",
+                                     order_dvs_third == 5 ~ "radchange",
+                                     .default = NA),
+         order_dvs_fourth = case_when(order_dvs_fourth == 1 ~ "antiest",
+                                     order_dvs_fourth == 2 ~ "ampride",
+                                     order_dvs_fourth == 3 ~ "trustgov",
+                                     order_dvs_fourth == 4 ~ "demsatis",
+                                     order_dvs_fourth == 5 ~ "radchange",
+                                     .default = NA),
+         order_dvs_fifth = case_when(order_dvs_fifth == 1 ~ "antiest",
+                                     order_dvs_fifth == 2 ~ "ampride",
+                                     order_dvs_fifth == 3 ~ "trustgov",
+                                     order_dvs_fifth == 4 ~ "demsatis",
+                                     order_dvs_fifth == 5 ~ "radchange",
+                                     .default = NA)) %>% 
+  mutate_at(vars(antiest_1:vote_who),function(x){as.numeric(x)}) %>% 
+  mutate_at(vars(PartyID7:RELIG),function(x){as.numeric(x)}) %>%
+  mutate_at(vars(GENDER:INCOME9),function(x){as.numeric(x)}) %>% 
+  mutate_at(vars(antiest_1:antiest_4),function(x){ifelse(x > 7,NA,x)}) %>% 
+  mutate_at(vars(trustgov:radchange),function(x){ifelse(x > 7,NA,x)}) %>% 
+  mutate(ampride = ifelse(ampride > 5,NA,ampride)) %>% 
+  mutate(vote_bin = case_when(vote_bin == 1 ~ "no vote",
+                              vote_bin == 2 ~ "no vote",
+                              vote_bin == 3 ~ "no vote",
+                              vote_bin == 4 ~ "vote",
+                              .default = NA),
+         vote_who = case_when(vote_who == 1 ~ "harris",
+                              vote_who == 2 ~ "trump",
+                              vote_who == 3 ~ "other",
+                              .default = NA)) %>% 
+  mutate(PartyID7 = ifelse(PartyID7 == -1,NA,PartyID7),
+         PartyID5 = ifelse(PartyID5 == -1,NA,PartyID5),
+         IDEO = ifelse(IDEO == -1,NA,IDEO)) %>% 
+  mutate(GENDER = case_when(GENDER == 1 ~ "male",
+                            GENDER == 2 ~ "female",
+                            GENDER == 0 ~ "other/unknown",
+                            .default = NA)) %>% 
+  mutate(RACETHNICITY = case_when(RACETHNICITY == 1 ~ "white/non-hisp",
+                                  RACETHNICITY == 2 ~ "black/non-hisp",
+                                  RACETHNICITY == 3 ~ "other/non-hisp",
+                                  RACETHNICITY == 4 ~ "hisp",
+                                  RACETHNICITY == 5 ~ "multi/non-hisp",
+                                  RACETHNICITY == 6 ~ "asian/non-hisp",
+                                  .default = NA)) %>% 
+  mutate(EDUC5 = case_when(EDUC5 == 1 ~ "less HS",
+                           EDUC5 == 2 ~ "HS",
+                           EDUC5 == 3 ~ "some coll",
+                           EDUC5 == 4 ~ "bachelors",
+                           EDUC5 == 5 ~ "masters",
+                           .default = NA)) %>% 
+  mutate(INCOME = case_when(INCOME == 1 ~ "under $5,000",
+                            INCOME == 2 ~ "$5,000 to $9,999",
+                            INCOME == 3 ~ "$10,000 to $14,999",
+                            INCOME == 4 ~ "$15,000 to $19,999",
+                            INCOME == 5 ~ "$20,000 to $24,999",
+                            INCOME == 6 ~ "$25,000 to $29,999",
+                            INCOME == 7 ~ "$30,000 to $34,999",
+                            INCOME == 8 ~ "$35,000 to $39,999",
+                            INCOME == 9 ~ "$40,000 to $49,999",
+                            INCOME == 10 ~ "$50,000 to $59,999",
+                            INCOME == 11 ~ "$60,000 to $74,999",
+                            INCOME == 12 ~ "$75,000 to $84,999",
+                            INCOME == 13 ~ "$85,000 to $99,999",
+                            INCOME == 14 ~ "$100,000 to $124,999",
+                            INCOME == 15 ~ "$125,000 to $149,999",
+                            INCOME == 16 ~ "$150,000 to $174,999",
+                            INCOME == 17 ~ "$175,000 to $199,999",
+                            INCOME == 18 ~ "$200,000 or more",
+                            .default = NA))
+```
+
+reverse-score
+
+```{r}
+df_nov24 <- df_nov24 %>% 
+  mutate(antiest_4R = 8 - antiest_4,
+         distrust = 8 - trustgov)
+```
+
+mean score
+
+```{r}
+df_nov24 <- df_nov24 %>% 
+  rowwise() %>% 
+  mutate(antiest = mean(c(antiest_1,
+                          antiest_2,
+                          antiest_3,
+                          antiest_4R),na.rm = T),
+         discontent = mean(c(antiest,
+                             distrust,
+                             radchange),na.rm = T)) %>% 
+  ungroup()
+```
+
+add exclusions that were checked manually
+
+```{r}
+df_nov24 <- df_nov24 %>% 
+  left_join(exclusions,by = "PID")
+```
+
+
+take only necessary variables
+
+```{r}
+df_bsc <- df_nov24 %>% 
+  select(PID,
+         cond,
+         antiest,
+         ampride:radchange,
+         distrust,
+         discontent,
+         top_value_char,
+         response,
+         exclude,
+         val_1:val_5,
+         antiest_1:antiest_3,
+         antiest_4R,
+         vote_bin,
+         vote_who,
+         vote_whoelse,
+         PartyID7,
+         PartyID5,
+         IDEO,
+         GENDER,
+         AGE,
+         RACETHNICITY,
+         EDUC5,
+         INCOME,
+         order_dvs_first:order_dvs_fifth,
+         STATE,
+         RELIG,
+         EMPLOY,
+         REGION4,
+         REGION9,
+         STARTDT)
+```
+
+write
+
+```{r}
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/November 2024/0166 TESS Baltiansky/data/df_bsc.csv",row.names = F)
+```
+

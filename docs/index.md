@@ -1,18 +1,16 @@
 ---
-title: "Broken Social Contract"
+title: "Political Discontent is Driven by A Broken Social Contract"
 output:
   html_document:
     self_contained: true
     md_extensions: +raw_html
 ---
 
-# Political Discontent is Driven by A Broken Social Contract
-
 By Dean Baltiansky
 
 <img src="assets/banner-flag.png" alt="Flag Banner" style="width:100%; height:auto;">
 
-## Background
+# Background
 
 <div style="overflow:auto;">
 
@@ -36,7 +34,7 @@ To test this hypothesis, we conduct three complementary nationally representativ
 
 </div>
 
-## Summary
+# Summary
 
 <div style="overflow:auto;">
 
@@ -46,7 +44,7 @@ The current research posits that political discontent—the dissatisfaction with
 
 </div>
 
-## Study 1
+# Study 1
 
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
@@ -265,9 +263,7 @@ The written responses, albeit precise in capturing people’s intuitions, posed 
   </tr>
 </table>
 
-
-
-## Study 2
+# Study 2
 
 <div style="margin-top: 0;">
   <p style="margin:0 0 12px 0;">
@@ -339,7 +335,7 @@ It turns out that perceived violations of justice, democracy, and freedom matter
 
   <!-- Left: text -->
   <div style="flex:1 1 340px; min-width:260px; font-size:0.95em; color:#333;">
-    <p>Study 2 also allowed us to compare social contract as they are seen by different segments of the population. For example, conservatives might believe and a very different social contract than liberals, and they may also see the government as upholding different parts of it differently. As you can see, people of different ideologies expect different things from the social contract. The light-shaded fill in the plot represent what people believe the U.S. stands for on paper, whereas the dark-shaded shapes inside represent what people believe the U.S. delivers in practice. You can think of them as different social contracts for different people. Rhere are, of course, many other ways to break down the sample. In the Cross-Sections app, you can break the data along big five personality traits, party affiliation, education, income, age, race, gender, region, and state.</p>
+    <p>Study 2 also allowed us to compare percptions of the social contract, as it is seen by different segments of the population. For example, conservatives might believe in a very different social contract than liberals, and they may also see the government as upholding different parts of it differently. As you can see, people of different ideologies expect different things from the social contract. The light-shaded fill in the plot represents what people believe the U.S. stands for on paper, whereas the dark-shaded shapes inside represent what people believe the U.S. delivers in practice. You can think of them as different social contracts for different people. There are, of course, many other ways to break down the sample. In the Cross-Sections app at the right, you can break the data along big five personality traits, party affiliation, education, income, age, race, gender, region, and state.</p>
   </div>
 
   <!-- Middle: image -->
@@ -363,6 +359,4 @@ It turns out that perceived violations of justice, democracy, and freedom matter
 
 ```
 
-
-
-## Study 3
+# Study 3
