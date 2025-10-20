@@ -386,34 +386,38 @@ In a novel experimental design, participants listed, in open-text form, five val
 Then, they completed measures of anti-establishment sentiment, trust in government, and support for radical change.
 </p>
 
-Examining only the two experimental conditions, we conducted a set of two-sample t-tests. Participants in the *promise broken* condition reported:\
-(1) **higher anti-establishment sentiment** (*M* = 5.18; *SD* = 1.14) than participants in the *promise kept* condition (*M* = 4.93; *SD* = 1.10), *t*(1158.90) = 3.92, 95% CI = [0.13, 0.39], *p* < .001, Cohen's *d* = 0.23;\
-(2) **lower trust in government** (*M* = 2.85; *SD* = 1.34) than participants in the *promise kept* condition (*M* = 3.01; *SD* = 1.36), *t*(1153.65) = -2.03, 95% CI = [-0.32, -0.01], *p* = .043, Cohen's *d* = -0.12; and\
-(3) **higher support for radical change** (*M* = 5.06; *SD* = 1.61) than participants in the *promise kept* condition (*M* = 4.84; *SD* = 1.68), *t*(1148.60) = 2.34, 95% CI = [0.04, 0.42], *p* = .019, Cohen's *d* = 0.14. 
+```{=html}
+<!-- One-time CSS (you can place this once near the top of the page) -->
 
-<!-- begin: text + image split (BSC) -->
-<div class="bsc-flex" style="display:flex; align-items:flex-start; gap:16px; margin:12px 0;">
-  <div class="bsc-text" style="flex:0 0 30%; max-width:30%; line-height:1.5;">
-    <p><strong>Examining only the two experimental conditions</strong>, we conducted a set of two-sample t-tests. Participants in the <em>promise broken</em> condition reported:<br>
-    (1) <strong>higher anti-establishment sentiment</strong> (<em>M</em> = 5.18; <em>SD</em> = 1.14) than participants in the <em>promise kept</em> condition (<em>M</em> = 4.93; <em>SD</em> = 1.10), <em>t</em>(1158.90) = 3.92, 95% CI = [0.13, 0.39], <em>p</em> &lt; .001, Cohen’s <em>d</em> = 0.23;<br>
-    (2) <strong>lower trust in government</strong> (<em>M</em> = 2.85; <em>SD</em> = 1.34) than participants in the <em>promise kept</em> condition (<em>M</em> = 3.01; <em>SD</em> = 1.36), <em>t</em>(1153.65) = -2.03, 95% CI = [-0.32, -0.01], <em>p</em> = .043, Cohen’s <em>d</em> = -0.12; and<br>
+<style>
+  .bsc-flex{ display:flex; gap:20px; align-items:flex-start; margin:16px 0 24px; }
+  .bsc-text{ flex:0 0 40%; max-width:40%; min-width:260px; }
+  .bsc-img { flex:0 0 60%; max-width:60%; min-width:320px; }
+  /* Desktop: keep side-by-side (no wrap) */
+  @media (min-width: 701px){
+    .bsc-flex{ flex-wrap:nowrap; }
+  }
+  /* Mobile/tablet: stack nicely */
+  @media (max-width: 700px){
+    .bsc-flex{ flex-wrap:wrap; }
+    .bsc-text, .bsc-img{ flex:0 0 100%; max-width:100%; min-width:0; }
+  }
+</style>
+
+<!-- Text + Image row -->
+
+<div class="bsc-flex">
+  <div class="bsc-text">
+    <p>Two-sample t-tests revealed that participants in the <em>promise broken</em> condition reported:
+    (1) <strong>higher anti-establishment sentiment</strong> (<em>M</em> = 5.18; <em>SD</em> = 1.14) than participants in the <em>promise kept</em> condition (<em>M</em> = 4.93; <em>SD</em> = 1.10), <em>t</em>(1158.90) = 3.92, 95% CI = [0.13, 0.39], <em>p</em> &lt; .001, Cohen’s <em>d</em> = 0.23;
+    (2) <strong>lower trust in government</strong> (<em>M</em> = 2.85; <em>SD</em> = 1.34) than participants in the <em>promise kept</em> condition (<em>M</em> = 3.01; <em>SD</em> = 1.36), <em>t</em>(1153.65) = -2.03, 95% CI = [-0.32, -0.01], <em>p</em> = .043, Cohen’s <em>d</em> = -0.12; and
     (3) <strong>higher support for radical change</strong> (<em>M</em> = 5.06; <em>SD</em> = 1.61) than participants in the <em>promise kept</em> condition (<em>M</em> = 4.84; <em>SD</em> = 1.68), <em>t</em>(1148.60) = 2.34, 95% CI = [0.04, 0.42], <em>p</em> = .019, Cohen’s <em>d</em> = 0.14.</p>
   </div>
 
-  <figure class="bsc-img" style="flex:0 0 70%; max-width:70%; margin:0;">
-    <img src="assets/study-3.png" alt="Group differences across outcomes"
-         style="width:100%; height:auto; display:block;">
-    <!-- Optional caption:
-    <figcaption style="font-size:0.9em; color:#666; margin-top:6px;">Caption text here.</figcaption>
-    -->
-  </figure>
+  <div class="bsc-img">
+    <img src="assets/study-3.png" alt="Study 3 Experimental Effects"
+         style="display:block; width:100%; height:auto; margin:0;">
+  </div>
 </div>
 
-<style>
-/* Make it stack nicely on narrow screens */
-@media (max-width: 900px){
-  .bsc-flex{ flex-direction:column; }
-  .bsc-text, .bsc-img{ flex:0 0 auto; max-width:100%; }
-}
-</style>
-<!-- end: text + image split (BSC) -->
+```
