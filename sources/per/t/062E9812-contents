@@ -41,7 +41,7 @@ repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/left-behind/main/s
 
 df_deid  <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
 
-Sys.setenv(OPENAI_API_KEY = "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") #this is my OpenAi api key for the Left Behind project
+Sys.setenv(OPENAI_API_KEY = ) #this is my OpenAi api key for the Left Behind project
 
 set.seed(20251001)
 ```
