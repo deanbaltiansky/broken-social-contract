@@ -6,7 +6,7 @@ output:
     md_extensions: +raw_html
 ---
 
-By Dean Baltiansky
+By Dean Baltiansky (in collaboration with <a href="https://sandramatz.com/" target="_blank">Prof. Sandra Matz</a>)
 
 <img src="assets/banner-flag.png" alt="Flag Banner" style="width:100%; height:auto;">
 
