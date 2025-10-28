@@ -1,0 +1,736 @@
+---
+title: "lebe_sep25a_textanalysis"
+author: "Dean Baltiansky"
+output: html_document
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+load packages and data
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidytext)
+library(quanteda)
+library(quanteda.textstats)
+library(stm)
+library(httr2)
+library(jsonlite)
+library(janitor)
+library(stringi)
+library(purrr)
+library(dbscan)
+library(uwot)
+library(readr)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/left-behind/main/study-sep25a/data/"
+
+df_deid  <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
+
+Sys.setenv(OPENAI_API_KEY = "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") #this is my OpenAi api key for the Left Behind project
+
+set.seed(20251001)
+```
+
+clean df
+
+```{r}
+df <- df_deid %>% 
+  select(PID,describe) %>% 
+  clean_names() %>% 
+  rename(id = pid,
+         response = describe) %>% 
+  mutate(response = str_squish(response)) %>% 
+  filter(!is.na(response),
+         nchar(response) > 0)
+```
+
+
+# Direct chat-gpt ratings
+
+## Create functions
+
+```{r}
+# packages
+library(httr2)
+library(jsonlite)
+
+gpt_structured_responses <- function(
+  context_text,
+  response_text,
+  schema,  # list(name=..., strict=..., schema=list(...))
+  model = "gpt-4o-mini-2024-07-18",
+  temperature = 0,
+  max_retries = 3,
+  verbose = TRUE
+) {
+  stopifnot(!is.null(schema$name), !is.null(schema$strict), !is.null(schema$schema))
+
+  prompt <- paste0(
+    "TASK:\nReturn a JSON object that STRICTLY matches the schema.\n\n",
+    "CONTEXT (coding manual / background):\n", context_text,
+    "\n\nTEXT TO CODE:\n", response_text
+  )
+
+body <- list(
+  model = model,
+  input = prompt,
+  temperature = temperature,
+  text = list(
+    format = list(
+      type   = "json_schema",
+      name   = schema$name,       # required at this level
+      schema = schema$schema,     # <-- put your JSON Schema HERE
+      strict = schema$strict      # enforce exact shape
+    )
+  ),
+  max_output_tokens = 500
+)
+
+  # Helpers
+  safe_has_text <- function(x) {
+    is.character(x) && length(x) >= 1 && !is.na(x[1]) && nzchar(x[1])
+  }
+  parse_any_json <- function(txt) {
+    if (safe_has_text(txt)) {
+      out <- try(jsonlite::fromJSON(txt, simplifyVector = TRUE), silent = TRUE)
+      if (!inherits(out, "try-error")) return(out)
+    }
+    NULL
+  }
+
+  attempt <- 1
+  repeat {
+    req <- httr2::request("https://api.openai.com/v1/responses") |>
+      httr2::req_headers(
+        Authorization = paste("Bearer", Sys.getenv("OPENAI_API_KEY")),
+        "Content-Type" = "application/json"
+      ) |>
+      httr2::req_body_json(body) |>
+      httr2::req_error(is_error = function(resp) FALSE)
+
+    resp <- httr2::req_perform(req)
+    status <- httr2::resp_status(resp)
+
+    if (status >= 200 && status < 300) {
+      out <- httr2::resp_body_json(resp)
+
+      # Preferred parsed locations
+      if (!is.null(out$output_parsed)) return(out$output_parsed)
+
+      if (!is.null(out$output) && length(out$output) > 0) {
+        for (i in seq_along(out$output)) {
+          if (!is.null(out$output[[i]]$parsed)) return(out$output[[i]]$parsed)
+          content_i <- out$output[[i]]$content
+          if (!is.null(content_i) && length(content_i) > 0) {
+            for (j in seq_along(content_i)) {
+              parsed <- content_i[[j]]$parsed
+              if (!is.null(parsed)) return(parsed)
+            }
+          }
+        }
+      }
+
+      # Fallback: try text fields
+      cand <- NULL
+      if (!is.null(out$output_text)) cand <- out$output_text
+      if (is.null(cand) && !is.null(out$output) && length(out$output) > 0) {
+        c1 <- try(out$output[[1]]$content[[1]]$text, silent = TRUE)
+        if (!inherits(c1, "try-error")) cand <- c1
+      }
+      parsed <- parse_any_json(cand)
+      if (!is.null(parsed)) return(parsed)
+
+      if (verbose) message("No parsed content found. Raw response:\n", jsonlite::toJSON(out, auto_unbox = TRUE))
+      return(NULL)
+    } else {
+      if (verbose) {
+        message("HTTP ", status, " from Responses API.\n--- Body ---\n",
+                httr2::resp_body_string(resp))
+      }
+    }
+
+    if (attempt >= max_retries) return(NULL)
+    Sys.sleep(runif(1, min = 1, max = 2^attempt))
+    attempt <- attempt + 1
+  }
+}
+
+
+
+
+
+
+# ---------- Shared context blocks (edit as you like) ----------
+participant_prompt <- paste0(
+  "PARTICIPANT PROMPT:\n",
+  "In what ways do you feel left behind?\n",
+  "Please describe why you might feel left behind in as much detail as possible. ",
+  "There is no right or wrong answer here; just your honest thoughts about the factors that might make you feel left behind.\n\n"
+)
+
+# ---------- 1) Left-behind score (1–5) ----------
+schema_left_behind_score <- list(
+  name = "left_behind_score",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(
+      left_behind_score = list(type = "integer", minimum = 1, maximum = 5)
+    ),
+    required = list("left_behind_score")
+  )
+)
+
+gpt_left_behind_score <- function(text, extra_context = "To what extent is this person feeling left behind?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE:\n1 = not at all; 2 = slightly; 3 = somewhat; 4 = very; 5 = extremely\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_left_behind_score, model, temperature)
+}
+
+# ---------- 2) Reasons (array of 1–3 word items) ----------
+schema_reasons <- list(
+  name = "reasons",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(
+      reasons = list(
+        type = "array",
+        items = list(type = "string", maxLength = 30, pattern = "^[^,]+$"),
+        minItems = 1,
+        maxItems = 10
+      )
+    ),
+    required = list("reasons")
+  )
+)
+
+gpt_reasons <- function(text, extra_context = "What are the factors that are making this person feel left behind?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "INSTRUCTIONS FOR REASONS:\n",
+    "- Return 1–10 concise items capturing factors (1–3 words each, lowercase if possible).\n",
+    "- No commas inside items (schema enforces this). Examples: 'housing costs', 'job loss', 'health issues'.\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_reasons, model, temperature)
+}
+
+# ---------- 3) Systemic (1–7) ----------
+schema_systemic <- list(
+  name = "systemic",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(systemic = list(type = "integer", minimum = 1, maximum = 7)),
+    required = list("systemic")
+  )
+)
+
+gpt_systemic <- function(text, extra_context = "Would you say that the factors that make this person feel left behind are more systemic (larger forces outside their control, like government, society, culture, or the economy) or more individual (their own circumstances and choice)?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Systemic vs Individual):\n",
+    "1 = entirely individual; 2 = somewhat more individual; 3 = slightly more individual; 4 = both; ",
+    "5 = slightly more systemic; 6 = somewhat more systemic; 7 = entirely systemic\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_systemic, model, temperature)
+}
+
+# ---------- 4) Government (1–5) ----------
+schema_government <- list(
+  name = "government",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(government = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("government")
+  )
+)
+
+gpt_government <- function(text, extra_context = "To what extent are the factors related to the government?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Government Relatedness):\n",
+    "1 = not at all related; 2 = slightly related to the government; 3 = somewhat related to the government; 4 = very related to the government; 5 = extremely related to the government\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_government, model, temperature)
+}
+
+# ---------- 5) Economic (1–5) ----------
+schema_economic <- list(
+  name = "economic",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(economic = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("economic")
+  )
+)
+
+gpt_economic <- function(text, extra_context = "To what extent are the factors related to economic conditions?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Economic Conditions):\n",
+    "1 = not at all related; 2 = slightly related to economic conditions; 3 = somewhat related to economic conditions; 4 = very related to economic conditions; 5 = extremely related to economic conditions\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_economic, model, temperature)
+}
+
+# ---------- 6) Cultural (1–5) ----------
+schema_cultural <- list(
+  name = "cultural",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(cultural = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("cultural")
+  )
+)
+
+gpt_cultural <- function(text, extra_context = "To what extent are the factors related to cultural issues (like dignity, feeling respected, feeling valued)?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Cultural issues):\n",
+    "1 = not at all related; 2 = slightly related to cultural issues; 3 = somewhat related to cultural issues; 4 = very related to cultural issues; 5 = extremely related to cultural issues\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_cultural, model, temperature)
+}
+
+# ---------- 7) Race (1–5) ----------
+schema_race <- list(
+  name = "race",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(race = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("race")
+  )
+)
+
+gpt_race <- function(text, extra_context = "To what extent are the factors related to racial background?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Racial Background):\n",
+    "1 = not at all related; 2 = slightly related to racial background; 3 = somewhat related to racial background; 4 = very related to racial background; 5 = extremely related to racial background\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_race, model, temperature)
+}
+
+# ---------- 8) Gender (1–5) ----------
+schema_gender <- list(
+  name = "gender",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(gender = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("gender")
+  )
+)
+
+gpt_gender <- function(text, extra_context = "To what extent are the factors related to gender?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Gender):\n",
+    "1 = not at all related; 2 = slightly related to gender; 3 = somewhat related to gender; 4 = very related to gender; 5 = extremely related to gender\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_gender, model, temperature)
+}
+
+# ---------- 9) Age (1–5) ----------
+schema_age <- list(
+  name = "age",
+  strict = TRUE,
+  schema = list(
+    type = "object", additionalProperties = FALSE,
+    properties = list(age = list(type = "integer", minimum = 1, maximum = 5)),
+    required = list("age")
+  )
+)
+
+gpt_age <- function(text, extra_context = "To what extent are the factors related to age?", model = "gpt-4o", temperature = 0) {
+  ctx <- paste0(
+    "SCALE (Age):\n",
+    "1 = not at all related; 2 = slightly related to age; 3 = somewhat related to age; 4 = very related to age; 5 = extremely related to age\n\n",
+    participant_prompt, extra_context
+  )
+  gpt_structured_responses(ctx, text, schema_age, model, temperature)
+}
+
+# ---------- Example: run each function and join ----------
+# optional helper (from earlier)
+clean_reasons <- function(xs) {
+  if (is.null(xs)) return(character())
+  xs <- tolower(trimws(xs))
+  xs <- xs[xs != ""]
+  xs <- gsub("\\s+", " ", xs)
+  xs <- gsub(",", "", xs)
+  unique(xs)[seq_len(min(length(xs), 10))]
+}
+
+code_all <- function(df, extra_context = "") {
+  n <- nrow(df)
+
+  purrr::pmap_dfr(list(df$response, df$id, seq_len(n)), function(txt, id, i) {
+    message(sprintf("Coding row %d/%d (id=%s)...", i, n, id))
+
+    s  <- gpt_left_behind_score(txt, extra_context);               if (is.null(s))  message("  - score FAILED")
+    r  <- gpt_reasons(txt, extra_context);                         if (is.null(r))  message("  - reasons FAILED")
+    sy <- gpt_systemic(txt, extra_context);                        if (is.null(sy)) message("  - systemic FAILED")
+    g  <- gpt_government(txt, extra_context);                      if (is.null(g))  message("  - government FAILED")
+    ec <- gpt_economic(txt, extra_context);            if (is.null(ec)) message("  - econ FAILED")
+    cul <- gpt_cultural(txt, extra_context); if (is.null(cul)) message("  - cult FAILED")
+    ra <- gpt_race(txt, extra_context);            if (is.null(ra)) message("  - race FAILED")
+    ge <- gpt_gender(txt, extra_context);            if (is.null(ge)) message("  - gender FAILED")
+    ag <- gpt_age(txt, extra_context);            if (is.null(ag)) message("  - age FAILED")
+
+    # define reasons_* safely
+    reasons_vec <- clean_reasons(if (!is.null(r)) r$reasons else character())
+    reasons_csv <- if (length(reasons_vec)) paste(reasons_vec, collapse = ", ") else NA_character_
+
+    tibble::tibble(
+  id                = id,
+  left_behind_score = suppressWarnings(as.numeric(if (!is.null(s))   s$left_behind_score else NA_real_)),
+  reasons_csv       = reasons_csv,
+  systemic          = suppressWarnings(as.numeric(if (!is.null(sy))  sy$systemic else NA_real_)),
+  government        = suppressWarnings(as.numeric(if (!is.null(g))   g$government else NA_real_)),
+  economic          = suppressWarnings(as.numeric(if (!is.null(ec))  ec$economic else NA_real_)),
+  cultural          = suppressWarnings(as.numeric(if (!is.null(cul)) cul$cultural else NA_real_)),
+  race              = suppressWarnings(as.numeric(if (!is.null(ra))  ra$race else NA_real_)),
+  gender            = suppressWarnings(as.numeric(if (!is.null(ge))  ge$gender else NA_real_)),
+  age               = suppressWarnings(as.numeric(if (!is.null(ag))  ag$age else NA_real_))
+)
+    
+  })
+}
+
+
+
+
+
+
+```
+
+## smoke tests
+
+```{r}
+test_schema <- list(
+  name = "ping",
+  strict = TRUE,
+  schema = list(
+    type = "object",
+    additionalProperties = FALSE,
+    properties = list(ok = list(type = "boolean")),
+    required = list("ok")
+  )
+)
+
+gpt_structured_responses(
+  context_text  = "Return exactly {\"ok\": true}.",
+  response_text = "",
+  schema = test_schema,
+  model = "gpt-4o"
+)
+```
+
+
+## Run code
+
+```{r}
+results_1 <- code_all(df %>% slice(1:100))
+results_2 <- code_all(df %>% slice(101:200))
+results_3 <- code_all(df %>% slice(201:250))
+results_4 <- code_all(df %>% slice(251:300))
+results_5 <- code_all(df %>% slice(301:350))
+results_6 <- code_all(df %>% slice(351:400))
+results_7 <- code_all(df %>% slice(401:450))
+results_8 <- code_all(df %>% slice(451:503))
+
+results <- results_1 %>% 
+  bind_rows(results_2) %>% 
+  bind_rows(results_3) %>% 
+  bind_rows(results_4) %>% 
+  bind_rows(results_5) %>% 
+  bind_rows(results_6) %>% 
+  bind_rows(results_7) %>% 
+  bind_rows(results_8)
+
+```
+
+write csv
+
+```{r}
+#write.csv(results,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/df_lebe_gpt4o.csv",row.names = F)
+```
+
+# embeddings
+
+First, let's read the csv with the reasons derived from chat-gpt above.
+
+```{r}
+df <- read.csv("~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/df_lebe_gpt4o.csv") %>% 
+  select(id,reasons_csv) %>% 
+  rename(reasons = reasons_csv)
+```
+
+separate
+
+```{r}
+df_long <- df %>% 
+  separate(reasons,into = c("reason_1","reason_2","reason_3","reason_4","reason_5","reason_6","reason_7","reason_8","reason_9","reason_10"),sep = ", ") %>% 
+  pivot_longer(-id,
+               names_to = "reason_id",
+               names_prefix = "reason_",
+               values_to = "reason",
+               values_drop_na = T)
+```
+create vector of terms ready for embeddings from openai
+
+```{r}
+reasons <- df_long %>% 
+  select(reason) %>% 
+  unique() %>% 
+  unlist() %>% 
+  unname()
+```
+
+get embeddings
+
+```{r}
+library(httr2)
+library(jsonlite)
+
+model <- "text-embedding-3-large"
+
+dimensions <- 3072
+
+batch_size <- 100
+
+total <- length(reasons)
+emb_matrix <- matrix(NA_real_, nrow = total, ncol = dimensions)
+reasons_out <- character(total)
+
+counter <- 0
+
+for (i in seq(1, total, by = batch_size)) {
+  batch_idx <- i:min(i + batch_size - 1, total)
+  batch <- reasons[batch_idx]
+
+  body <- list(model = model, input = unname(batch), dimensions = dimensions)
+
+  resp <- request("https://api.openai.com/v1/embeddings") |>
+    req_headers(Authorization = paste("Bearer", Sys.getenv("OPENAI_API_KEY"))) |>
+    req_body_json(body, auto_unbox = TRUE) |>
+    req_perform() |>
+    # IMPORTANT: keep lists as lists so $embedding exists
+    resp_body_json(simplifyVector = FALSE)
+
+  # resp$data is a list; each element has $embedding (numeric vector)
+  for (j in seq_along(batch)) {
+    counter <- counter + 1
+    vec <- resp$data[[j]]$embedding
+    # safety: ensure numeric
+    vec <- as.numeric(vec)
+
+    emb_matrix[batch_idx[j], ] <- vec
+    reasons_out[batch_idx[j]] <- batch[j]
+
+    cat(sprintf("Retrieved embedding for reason %d of %d\n", counter, total))
+  }
+}
+
+# Build final data.frame: reason + 3072 numeric columns
+df_embeddings <- data.frame(reason = reasons_out, as.data.frame(emb_matrix), check.names = FALSE)
+
+#write
+
+#write.csv(df_embeddings,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/reason_embeddings.csv",row.names = F)
+
+```
+
+
+# Clustering
+
+```{r}
+library(cluster)
+
+emb_cols <- grep("^V\\d+$", names(df_embeddings), value = TRUE)
+stopifnot(length(emb_cols) > 0)
+
+M <- as.matrix(df_embeddings[, emb_cols, drop = FALSE])
+nrms <- sqrt(rowSums(M * M))
+keep <- is.finite(nrms) & nrms > 0
+if (!any(keep)) stop("No valid rows after L2-normalization.")
+
+U <- M[keep, , drop = FALSE] / nrms[keep]   # unit vectors (cosine-friendly)
+reasons <- df_embeddings$reason[keep]
+
+# ----- 1) Cosine distance helper (clamps without dropping matrix dims) -----
+cosine_dist <- function(U) {
+  U <- as.matrix(U); storage.mode(U) <- "double"
+  n <- nrow(U)
+  if (n < 2) return(as.dist(matrix(0, n, n)))
+  S <- tcrossprod(U)        # cosine similarity for unit vectors
+  S[S >  1] <-  1           # clamp numeric noise
+  S[S < -1] <- -1
+  diag(S) <- 1
+  D <- 1 - S
+  D <- (D + t(D)) / 2       # enforce symmetry
+  as.dist(D)
+}
+
+# ----- 2) Safe mean silhouette for a given k (skips bad k) -----
+safe_sil_for_k <- function(k, U) {
+  n <- nrow(U)
+  if (n < 3 || k < 2 || k > n) return(NA_real_)
+  set.seed(42)
+  km <- kmeans(U, centers = k, nstart = 25)
+  cl <- km$cluster
+  sz <- as.vector(table(cl))
+  if (length(sz) < 2 || any(sz < 2)) return(NA_real_)   # skip empty/singletons
+  Dk <- cosine_dist(U)                                   # matches THIS U
+  mean(silhouette(as.integer(cl), Dk)[, "sil_width"], na.rm = TRUE)
+}
+
+# ----- 3) Scan k and pick the best by silhouette -----
+n <- nrow(U)
+ks <- if (n >= 3) 2:min(12, n - 1) else integer(0)
+sil <- if (length(ks)) sapply(ks, safe_sil_for_k, U = U) else numeric(0)
+
+valid <- which(!is.na(sil))
+
+k <- if (!length(ks) || length(valid) == 0) {
+  if (nrow(U) >= 2) 2 else 1   # fallback if all NA or no ks
+} else {
+  ks[ valid[ which.max(sil[valid]) ] ]
+}
+
+cat("Chosen k =", k, "\n")
+
+# ----- 4) Final k-means and outputs -----
+set.seed(20251001)
+k = 10 
+km <- kmeans(U, centers = k, nstart = 50, iter.max = 100)
+clusters <- km$cluster
+
+clusters_df <- tibble(reason = reasons, cluster = clusters)
+
+# Optional: exemplar reasons per cluster by cosine-to-centroid
+C <- km$centers
+C <- C / sqrt(rowSums(C * C))
+cos2C <- U %*% t(C)
+
+topN <- 5
+top_examples <- bind_rows(lapply(seq_len(k), function(c) {
+  idx <- which(clusters == c)
+  if (!length(idx)) return(tibble(cluster = integer(), reason = character(), cosine_to_centroid = numeric()))
+  ord <- order(cos2C[idx, c], decreasing = TRUE)
+  tibble(
+    cluster = c,
+    reason  = reasons[idx][ord][seq_len(min(topN, length(idx)))],
+    cosine_to_centroid = cos2C[idx, c][ord][seq_len(min(topN, length(idx)))]
+  )
+}))
+
+#write.csv(clusters_df,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/cluster_df.csv",row.names = F)
+
+#write.csv(top_examples,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/top_examples.csv",row.names = F)
+
+```
+
+Alright, now, we're gonna assign a cluster to each participant based on their mean-centered embedding's cosine similarity with the cluster's mean embedding. So, the closer they are to cluster, the more likely they are to be categorized as that cluster.
+
+L2-normalize each reason vector (so dot products = cosine).
+
+For each person, take the mean of their unit vectors (their “person vector”).
+
+Compare that person vector to each cluster centroid (cosine = average similarity to that cluster); pick the max.
+
+```{r}
+# prepe the df
+df <- df_long %>% 
+  left_join(df_embeddings,by = "reason") %>% 
+  select(-reason_id)
+
+
+assign_person_clusters <- function(df, km, id_col = "id") {
+  # 1) find embedding columns (support V1.. and dim_1..)
+  emb_cols <- grep("^V\\d+$|^dim_\\d+$", names(df), value = TRUE)
+  if (!length(emb_cols)) stop("No embedding columns found (expecting V1.. or dim_1..).")
+  if (!id_col %in% names(df)) stop("id column not found: ", id_col)
+
+  # 2) L2-normalize each reason vector
+  M <- as.matrix(df[, emb_cols, drop = FALSE])
+  nrms <- sqrt(rowSums(M * M))
+  ok   <- is.finite(nrms) & nrms > 0
+  U    <- M[ok, , drop = FALSE] / nrms[ok]
+  ids  <- df[[id_col]][ok]
+
+  # 3) Person-level mean unit vector (one row per person)
+  idx_by_id <- split(seq_len(nrow(U)), ids)
+  MU_list <- lapply(idx_by_id, function(rows) {
+    colMeans(U[rows, , drop = FALSE])  # average of unit vectors
+  })
+  MU <- do.call(rbind, MU_list)        # people x dims
+  people <- names(idx_by_id)
+  n_reasons <- vapply(idx_by_id, length, integer(1))
+
+  # 4) Normalize cluster centroids to unit length
+  C <- km$centers
+  C <- C / sqrt(rowSums(C * C))
+
+  # 5) Scores = average cosine to each cluster (mean of cosines)
+  #    (since mu·c = mean_i (u_i·c))
+  S <- MU %*% t(C)                     # people x k matrix, in [-1, 1]
+
+  # 6) Pick best cluster; also report second-best and margin
+  best_idx <- max.col(S, ties.method = "first")
+  best_val <- S[cbind(seq_len(nrow(S)), best_idx)]
+
+  # second best
+  second_idx <- apply(S, 1, function(x) {
+    if (all(!is.finite(x))) return(NA_integer_)
+    ord <- order(x, decreasing = TRUE)
+    if (length(ord) >= 2) ord[2] else NA_integer_
+  })
+  second_val <- mapply(function(i, j) if (is.na(j)) NA_real_ else S[i, j],
+                       seq_len(nrow(S)), second_idx)
+
+  # 7) Mean resultant length (cohesion of a person's reasons)
+  mrl <- sqrt(rowSums(MU * MU))
+
+  # 8) Assemble output
+  tibble(
+    !!id_col := people,
+    n_reasons = n_reasons,
+    mrl = mrl,
+    assigned_cluster = best_idx,
+    avg_cosine_to_assigned = best_val,          # mean cosine to chosen centroid
+    second_best_cluster = second_idx,
+    second_best_avg_cosine = second_val,
+    margin = best_val - second_val
+  )
+}
+
+df_PIDreasonclusters <- assign_person_clusters(df,km)
+
+write.csv(df_PIDreasonclusters,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-sep25a/data/df_PIDreasonclusters.csv",row.names = F)
+```
+
+

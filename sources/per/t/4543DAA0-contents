@@ -1,0 +1,131 @@
+---
+title: "cbzs_aug24_preprocess"
+output: html_document
+---
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(httr)
+
+df_deid <- read.csv("~/Google Drive/My Drive/Class-Based Zero-Sum/longitudinal study/sep24/data/df_raw_deid.csv")
+
+#time 0 data
+df_t0data <- read.csv("~/Google Drive/My Drive/Class-Based Zero-Sum/longitudinal study/aug24/data/df_cbzs.csv")
+```
+
+clean t0
+
+```{r}
+time0data <- df_t0data %>% 
+  filter(!is.na(PID)) %>% 
+  select(PID:vote_2024_all,
+         party:favor_harris,
+         ideo_con:wrkclass) %>% 
+  rename(vote_2024_all_time0 = vote_2024_all)
+```
+
+combine into time 1 data
+
+```{r}
+df_cbzs <- df_deid %>% 
+  left_join(time0data,by = "PID")
+```
+
+rename
+
+```{r}
+df_cbzs <- df_cbzs %>% 
+  rename(culprit_uppclass = culprit_1,
+         culprit_imm = culprit_2,
+         culprit_race = culprit_3)
+```
+
+reverse-score items
+
+```{r}
+df_cbzs <- df_cbzs %>% 
+  mutate(zs_class_3R = 8 - zs_class_3,
+         zs_race_3R = 8 - zs_race_3,
+         zs_imm_3R = 8 - zs_imm_3,,
+         zsm_5R = 8 - zsm_5,
+         zsm_7R = 8 - zsm_7)
+```
+
+mean scores
+
+```{r}
+df_cbzs <- df_cbzs %>% 
+  rowwise() %>% 
+  mutate(zs_class = mean(c(zs_class_1,
+                           zs_class_2,
+                           zs_class_3R),na.rm = T),
+         zs_race = mean(c(zs_race_1,
+                           zs_race_2,
+                           zs_race_3R),na.rm = T),
+         zs_imm = mean(c(zs_imm_1,
+                           zs_imm_2,
+                           zs_imm_3R),na.rm = T),
+         zsm = mean(c(zsm_1,
+                      zsm_2,
+                      zsm_3,
+                      zsm_4,
+                      zsm_5R,
+                      zsm_6,
+                      zsm_7R),na.rm = T),
+         soli = mean(c(soli_1,
+                       soli_2,
+                       soli_3),na.rm = T)) %>% 
+  ungroup()
+```
+
+take only necessary variables
+
+```{r}
+df_cbzs <- df_cbzs %>% 
+  dplyr::select(PID:minwage,
+                zs_class:soli,
+                culprit_uppclass:culprit_race,
+                zs_class_1,
+                           zs_class_2,
+                           zs_class_3R,
+                zs_race_1,
+                           zs_race_2,
+                           zs_race_3R,
+                zs_imm_1,
+                           zs_imm_2,
+                           zs_imm_3R,
+                zsm_1,
+                      zsm_2,
+                      zsm_3,
+                      zsm_4,
+                      zsm_5R,
+                      zsm_6,
+                      zsm_7R,
+                soli_1,
+                       soli_2,
+                       soli_3,
+                vote_2020:wrkclass,
+                feedback)
+```
+
+write csv
+
+```{r}
+write.csv(df_cbzs,"~/Google Drive/My Drive/Class-Based Zero-Sum/longitudinal study/sep24/data/df_cbzs.csv",row.names = F)
+```
+

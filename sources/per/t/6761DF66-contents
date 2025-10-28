@@ -1,0 +1,67 @@
+---
+title: "lebe_oct25_deid"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+df_raw_char <- read.csv("~/Google Drive/My Drive/left behind/oct25/data/lebe_oct25_raw_char.csv")
+df_raw_num <- read.csv("~/Google Drive/My Drive/left behind/oct25/data/lebe_oct25_raw_num.csv")
+```
+
+removing first 7 rows
+
+```{r}
+df_raw_num <- df_raw_num %>% 
+  slice(-(1:7))
+```
+
+removing ineligible character variables from numeric df and attaching those variables from character df (by ResponseID), plus adding the ordering variables
+
+```{r}
+df_raw <- df_raw_num %>% 
+  dplyr::select(-c(gender,race_1:race_8,income,edu,party_gen:party_ind)) %>% 
+  left_join(df_raw_char %>% dplyr::select(ResponseId,
+                                   gender,
+                                   race_1:race_8,
+                                   income,
+                                   edu,
+                                   party_gen:party_ind),
+            by = "ResponseId")
+```
+
+creating alpha-numeric PIDs
+
+```{r}
+# Function to generate a single code
+generate_code <- function() {
+  upper <- paste0(sample(LETTERS, 2, replace = TRUE), collapse = "")
+  digits <- paste0(sample(0:9, 3, replace = TRUE), collapse = "")
+  lower <- paste0(sample(letters, 2, replace = TRUE), collapse = "")
+  paste0(upper, digits, lower)
+}
+
+# Generate codes based on the number of rows in df_raw
+num_codes <- nrow(df_raw)
+codes <- replicate(num_codes, generate_code())
+```
+
+removing identifiable information and adding PID's
+
+```{r}
+df_raw_deid <- df_raw %>% 
+  dplyr::select(Status,Progress:Finished,consent:feedback,mds_self:party_ind) %>% 
+  mutate(PID = codes) %>% 
+  dplyr::select(PID,everything())
+```
+
+writing de-id df to drive
+
+```{r}
+write.csv(df_raw_deid,"~/Google Drive/My Drive/left behind/left behind - github/left-behind/study-oct25/data/df_raw_deid.csv",row.names = F)
+```
+
+
+
+

@@ -1,0 +1,479 @@
+---
+title: "bsc_s2_preprocess"
+output: html_document
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-2/data/"
+
+df_deid <- readr::read_csv(paste0(repo_url,"df_raw_deid.csv"), show_col_types = FALSE)
+county_data <- readr::read_csv(paste0(repo_url,"county_data.csv"), show_col_types = FALSE)
+```
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_bsc <- df_deid %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+define income and edu as factors
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+add continuous income and edu vars
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(income_num = as.numeric(income),
+         edu_num = as.numeric(edu))
+```
+
+ethnicity
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(hispanic = ifelse(is.na(race_2),0,
+                           ifelse(race_2 == "Hispanic, Latino, or Spanish origin",1,0)))
+```
+
+fix race
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate_at(vars(race_1:race_8),function(x){as.character(x)}) %>% 
+  mutate_at(vars(race_1:race_8),function(x){replace_na(x,"")}) %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num_5 = ifelse(race_5 != "",1,0),
+         race_num_6 = ifelse(race_6 != "",1,0),
+         race_num_7 = ifelse(race_7 != "",1,0),
+         race_num_8 = ifelse(race_8 != "",1,0),
+         race_num = race_num_1 + race_num_3 + race_num_4 + race_num_5 + race_num_6 + race_num_7 + race_num_8,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_3,race_4,race_5,race_6,race_7,race_8)),
+         race = ifelse(race == "",NA,race),
+         white = ifelse(race == "White",1,0))
+```
+
+gender
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(man = ifelse(gender == "man",1,0))
+```
+
+
+reverse-score items
+
+```{r}
+#antiest_4,SDO_3,SDO_4,SDO_7,SDO_8,TIPI_2,TIPI_6,TIPI_8,TIPI_9,TIPI_10
+df_bsc <- df_bsc %>% 
+  mutate(antiest_4R = 8 - antiest_4,
+         SDO_3R = 8 - SDO_3,
+         SDO_4R = 8 - SDO_4,
+         SDO_7R = 8 - SDO_7,
+         SDO_8R = 8 - SDO_8,
+         TIPI_2R = 8 - TIPI_2,
+         TIPI_6R = 8 - TIPI_6,
+         TIPI_8R = 8 - TIPI_8,
+         TIPI_9R = 8 - TIPI_9,
+         TIPI_10R = 8 - TIPI_10)
+```
+
+
+create mean scores
+
+```{r}
+df_bsc <- df_bsc %>% 
+  rowwise() %>% 
+  mutate(antiest = mean(c(antiest_1,
+                          antiest_2,
+                          antiest_3,
+                          antiest_4R),na.rm = T),
+         trust_deminst = mean(c(trust_congress,
+                                trust_gov,
+                                trust_courts),na.rm = T),
+         trust_natinst = mean(c(trust_media,
+                                trust_edu,
+                                trust_police,
+                                trust_millitary,
+                                trust_finance,
+                                trust_med),na.rm = T),
+         SDO = mean(c(SDO_1,
+                      SDO_2,
+                      SDO_3R,
+                      SDO_4R,
+                      SDO_5,
+                      SDO_6,
+                      SDO_7R,
+                      SDO_8R),na.rm = T),
+         TIPI_extra = mean(c(TIPI_1,TIPI_6R),na.rm = T),
+         TIPI_agree = mean(c(TIPI_2R,TIPI_7),na.rm = T),
+         TIPI_consc = mean(c(TIPI_3,TIPI_8R),na.rm = T),
+         TIPI_neuro = mean(c(TIPI_4,TIPI_9R),na.rm = T),
+         TIPI_open = mean(c(TIPI_5,TIPI_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+attention check
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(check_1 = ifelse(check != 5 | is.na(check),1,0),
+         is_elg = ifelse(check_1 == 1,0,1))
+```
+
+rename
+
+```{r}
+df_bsc <- df_bsc %>% 
+  rename(ideo_con = ideo_1,
+         ideo_lib = ideo_2,
+         ideo_demsoc = ideo_3,
+         ideo_lbrtn = ideo_4,
+         ideo_prog = ideo_5,
+         state = county_1,
+         county = county_2,
+         democracy_paper = uspaper_48,
+         equality_paper = uspaper_51,
+         freedom_paper = uspaper_55,
+         individualism_paper = uspaper_56,
+         justice_paper = uspaper_57,
+         happiness_paper = uspaper_58,
+         arms_paper = uspaper_59,
+         tolerance_paper = uspaper_60,
+         democracy_practice = practice_9,
+         equality_practice = practice_10,
+         freedom_practice = practice_11,
+         individualism_practice = practice_12,
+         justice_practice = practice_13,
+         happiness_practice = practice_14,
+         arms_practice = practice_15,
+         tolerance_practice = practice_16,
+         democracy_ideal = ideal_48,
+         equality_ideal = ideal_51,
+         freedom_ideal = ideal_55,
+         individualism_ideal = ideal_56,
+         justice_ideal = ideal_57,
+         happiness_ideal = ideal_58,
+         arms_ideal = ideal_59,
+         tolerance_ideal = ideal_60)
+```
+
+county data
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(state = ifelse(state == "Louisana","Louisiana",state)) %>% 
+  left_join(county_data,by = c("state","county"))
+```
+
+dummy-code voting intentions
+
+```{r}
+df_bsc <- df_bsc %>% 
+  mutate(vote_2024_trump = ifelse(vote_2024 == "Donald Trump",1,0),
+         vote_2024_biden = ifelse(vote_2024 == "Joe Biden",1,0),
+         vote_2024_rfkj = ifelse(vote_2024 == "Robert F. Kennedy Jr.",1,0),
+         vote_2024_other = ifelse(vote_2024 == "Other",1,0),
+         republican = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Republican",1,0)),
+         democrat = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Democrat",1,0)),
+         independent = ifelse(is.na(party_id),NA,
+                             ifelse(party_id == "Independent",1,0)))
+```
+
+create long df for value scores and weights
+
+```{r}
+df_bsc_long <- df_bsc %>% 
+  select(PID,democracy_paper:tolerance_paper,democracy_ideal:tolerance_ideal,democracy_practice:tolerance_practice) %>% 
+  pivot_longer(-c(PID,democracy_practice:tolerance_practice),
+               names_to = "names",
+               values_to = "weight") %>% 
+  separate(names,into = c("value","type"),sep = "_") %>% 
+  mutate(score = case_when(value == "democracy" ~ democracy_practice,
+                           value == "equality" ~ equality_practice,
+                           value == "freedom" ~ freedom_practice,
+                           value == "individualism" ~ individualism_practice,
+                           value == "justice" ~ justice_practice,
+                           value == "happiness" ~ happiness_practice,
+                           value == "arms" ~ arms_practice,
+                           value == "tolerance" ~ tolerance_practice,
+                           .default = NA)) %>% 
+  mutate(weighted_score = weight*score/100) %>% 
+  select(PID,value:weighted_score)
+```
+
+create weighted means for broken and personal disappointment
+
+```{r}
+df_scores <- df_bsc_long %>% 
+  group_by(PID,type) %>% 
+  summarise(values_met = sum(weighted_score)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = type,
+              values_from = values_met) %>% 
+  mutate(brokenpromise = 100 - paper,
+         personaldisappoint = 100 - ideal) %>% 
+  rename(promisekept = paper,
+         idealkept = ideal) %>% 
+  select(PID,brokenpromise,personaldisappoint,promisekept,idealkept)
+```
+
+join back into df
+
+```{r}
+df_bsc <- df_bsc %>% 
+  left_join(df_scores,by = "PID")
+```
+
+take only necessary variables
+
+```{r}
+df_bsc <- df_bsc %>% 
+  dplyr::select(PID,
+                brokenpromise,
+                personaldisappoint,
+                promisekept,
+                idealkept,
+                antiest:TIPI_open,
+                change,
+                vote_tomorrow,
+                vote_likely,
+                antiest_1,
+                antiest_2,
+                antiest_3,
+                antiest_4R,
+                trust_congress,
+                trust_gov,
+                trust_courts,
+                trust_media,
+                trust_edu,
+                trust_police,
+                trust_millitary,
+                trust_finance,
+                trust_med,
+                SDO_1,
+                SDO_2,
+                SDO_3R,
+                SDO_4R,
+                SDO_5,
+                SDO_6,
+                SDO_7R,
+                SDO_8R,
+                TIPI_1,TIPI_6R,
+                TIPI_2R,TIPI_7,
+                TIPI_3,TIPI_8R,
+                TIPI_4,TIPI_9R,
+                TIPI_5,TIPI_10R,
+                is_elg,
+                ideo_con:ideo_prog,
+                party_id,
+                republican:independent,
+                vote_2020,
+                vote_2024,
+                vote_2024_trump:vote_2024_other,
+                income,
+                income_num,
+                edu,
+                edu_num,
+                race,
+                white,
+                hispanic,
+                age,
+                gender,
+                man,
+                state,
+                county,
+                county_gini:county_medianincome,
+                feedback)
+```
+
+write csv
+
+```{r}
+write.csv(df_bsc,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc.csv",row.names = F)
+write.csv(df_bsc %>% filter(is_elg == 1),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_elg.csv",row.names = F)
+
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+write.csv(df_bsc_long,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_long.csv",row.names = F)
+write.csv(df_bsc_long %>% filter(PID %in% elg_PIDs),"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_long_elg.csv",row.names = F)
+```
+
+create csv for shiny app that breaks down contracts by different dimensions
+
+```{r}
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+df <- df_bsc_long %>% 
+  filter(PID %in% elg_PIDs) %>% 
+  filter(type == "paper") %>% 
+  select(PID,value,weight,weighted_score)
+
+
+#regions
+northeast_newengland <- c("Connecticut","Maine","Massachusetts","New Hampshire","Rhode Island","Vermont")
+northeast_midatlantic <- c("New Jersey","New York","Pennsylvania")
+midwest_eastnorthcentral <- c("Illinois","Indiana","Michigan","Ohio","Wisconsin")
+midwest_westnorthcentral <- c("Iowa","Kansas","Minnesota","Missouri","Nebraska","North Dakota","South Dakota")
+south_southatlantic <- c("Delaware","District of Columbia","Florida","Georgia","Maryland","North Carolina","South Carolina","Virginia","West Virginia")
+south_eastsouthcentral <- c("Alabama","Kentucky","Mississippi","Tennessee")
+south_westsouthcentral <- c("Arkansas","Louisiana","Oklahoma","Texas")
+west_mountain <- c("Arizona","Colorado","Idaho","Montana","Nevada","New Mexico","Utah","Wyoming")
+west_pacific <- c("Alaska","California","Hawaii","Oregon","Washington")
+
+df_peronal <- df_bsc %>%  
+  filter(is_elg == 1) %>% 
+  select(PID,TIPI_extra:TIPI_open,ideo_con:ideo_prog,party_id,income_num,edu,race,hispanic,age,gender,state) %>% 
+  mutate_at(vars(TIPI_extra:TIPI_open),function(x){scale(x)}) %>% 
+  mutate_at(vars(TIPI_extra:TIPI_open),function(x){case_when(x >= 1 ~ "high",
+                                                             x < 1 & x > -1 ~ "mid",
+                                                             x <= -1 ~ "low",
+                                                             .default = NA)}) %>% 
+  mutate_at(vars(ideo_con:ideo_prog),function(x){replace_na(x,0)}) %>% 
+  mutate_at(vars(ideo_con:ideo_prog),function(x){ifelse(x > 4,1,0)}) %>% 
+  mutate(income = case_when(income_num < 4 ~ "under $60k",
+                            income_num >= 4 & income_num < 7 ~ "$60k-$120k",
+                            income_num >= 7 ~ "over $120k",
+                            .default = NA)) %>% 
+  mutate(edu = case_when(edu %in% c("noHS","GED","2yearColl") ~ "no college",
+                         edu %in% c("4yearColl","MA","PHD") ~ "with college",
+                         .default = NA)) %>% 
+  mutate(race_eth = case_when(is.na(race) & hispanic == 1 ~ "hispanic",
+                          race == "White" & hispanic == 0 ~ "non-hispanic white",
+                          race == "Asian" & hispanic == 0 ~ "non-hispanic asian",
+                          race == "Black or African American" & hispanic == 0 ~ "non-hispanic black",
+                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 0 ~ "non-hispanic other",
+                          race == "White" & hispanic == 1 ~ "hispanic white",
+                          race == "Asian" & hispanic == 1 ~ "hispanic asian",
+                          race == "Black or African American" & hispanic == 1 ~ "hispanic black",
+                          race %in% c("Other (please specify)","American Indian or Alaska Native","Middle Eastern or North African","Native Hawaiian or Other Pacific Islander") & hispanic == 1 ~ "hispanic other",
+                          race == "multiracial" ~ "multiracial",
+                          .default = NA)) %>% 
+  mutate(age = case_when(age <= 24 ~ "18-24",
+                         age >= 25 & age <= 34 ~ "25-34",
+                         age >= 35 & age <= 44 ~ "35-44",
+                         age >= 45 & age <= 54 ~ "45-54",
+                         age >= 55 & age <= 64 ~ "55-64",
+                         age >= 65 & age <= 74 ~ "65-74",
+                         age >= 75 ~ "75+",
+                         .default = NA)) %>% 
+  mutate(region = case_when(state %in% northeast_midatlantic ~ "northeast - middle atlantic",
+                            state %in% northeast_newengland ~ "northeast - new england",
+                            state %in% midwest_eastnorthcentral ~ "midwest - east north cnetral",
+                            state %in% midwest_westnorthcentral ~ "midwest - west north central",
+                            state %in% south_southatlantic ~ "south - south atlantic",
+                            state %in% south_eastsouthcentral ~ "south - east south central",
+                            state %in% south_westsouthcentral ~ "south - west south central",
+                            state %in% west_mountain ~ "west - mountain",
+                            state %in% west_pacific ~ "west - pacific",
+                            .default = NA)) %>% 
+  select(PID:party_id,edu,income,age,race_eth,gender,region,state)
+
+df_forapp <- df %>% 
+  left_join(df_peronal,by = "PID")
+
+write.csv(df_forapp,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_bsc_longforapp.csv",row.names = F)
+```
+
+for models
+
+```{r}
+elg_PIDs <- df_bsc %>% filter(is_elg == 1) %>% select(PID) %>% unlist() %>% unname()
+
+control_vars <- c(
+  "ideo_con_z","SDO_z","TIPI_agree_z","man","white","hispanic",
+  "income_num_z","edu_num_z","age_z",
+  "county_medianincome_z","county_gini_z","county_density_z"
+)
+
+outcome_vars <- c("antiest_z","change_z","trust_deminst_z","trust_natinst_z")
+
+df_wide <- df_bsc_long %>%
+  filter(PID %in% elg_PIDs) %>% 
+  filter(type == "paper") %>% 
+  select(PID,value,weighted_score) %>%
+  pivot_wider(names_from = value,
+              values_from = weighted_score)
+
+df_formodels <- df_bsc %>% 
+  filter(is_elg == 1) %>% 
+  mutate(brokenpromise_z = scale(brokenpromise),
+         personaldisappoint_z = scale(personaldisappoint),
+         promisekept_z = scale(promisekept),
+         idealkept_z = scale(idealkept),
+         vote_likely_z = scale(vote_likely),
+         change_z = scale(change),
+         antiest_z = scale(antiest),
+         trust_deminst_z = scale(trust_deminst),
+         trust_natinst_z = scale(trust_natinst),
+         ideo_con_z = scale(ideo_con),
+         ideo_lib_z = scale(ideo_lib),
+         ideo_demsoc_z = scale(ideo_demsoc),
+         ideo_lbrtn_z = scale(ideo_lbrtn),
+         ideo_prog_z = scale(ideo_prog),
+         SDO_z = scale(SDO),
+         TIPI_agree_z = scale(TIPI_agree),
+         income_num_z = scale(income_num),
+         edu_num_z = scale(edu_num),
+         age_z = scale(age),
+         county_density_z = scale(as.numeric(county_density)),
+         county_gini_z = scale(as.numeric(county_gini)),
+         county_medianincome_z = scale(as.numeric(county_medianincome))) %>% 
+  select(PID,all_of(outcome_vars),all_of(control_vars)) %>% 
+  left_join(df_wide,by = "PID") %>% 
+  drop_na(all_of(c(outcome_vars,control_vars)))
+
+write.csv(df_formodels,"~/Google Drive/My Drive/american's dream/for github/broken-social-contract/study-2/data/df_formodels.csv",row.names = F)
+```
+

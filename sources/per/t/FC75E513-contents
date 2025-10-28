@@ -1,0 +1,672 @@
+---
+title: "RECD: October 2025A"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+```{r setup, include=FALSE}
+library(apa)
+library(see)
+library(lme4)
+library(interactions)
+library(jtools)
+library(gridExtra)
+library(kableExtra)
+library(apaTables)
+library(papaja)
+library(knitr)
+library(psych)
+library(GPArotation)
+library(PerformanceAnalytics)
+library(gt)
+library(diagram)
+library(factoextra)
+library(pander)
+library(mediation)
+library(multcomp)
+library(quanteda)
+library(tinytable)
+library(tidyverse)
+library(extrafont)
+loadfonts()
+
+df_recd <- read.csv("~/Google Drive/My Drive/dominance/oct-2025a/data/df_recd.csv")
+```
+
+```{r,include=FALSE}
+df_recd <- df_recd %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")),
+         income_num = as.numeric(income),
+         edu_num = as.numeric(edu),
+         gender_man = ifelse(gender == "man",1,0),
+         race_white = ifelse(race == "white",1,0)) %>% 
+  mutate(is_dom = ifelse(message_choice == "dom",1,0)) 
+
+df_recd_elg <- df_recd %>% 
+   filter(att_1 == 1)
+```
+
+
+# Attention check
+
+First, let's see who passed the attention check.
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=F}
+df_recd %>% 
+  group_by(att_1) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+# Demographics
+
+## Race
+
+```{r,results='asis',echo=FALSE,warning=FALSE}
+df_recd_elg %>% 
+  group_by(race) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Gender
+
+```{r,echo=FALSE,results='asis',warning=FALSE}
+df_recd_elg %>% 
+  group_by(gender) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Age
+
+```{r,echo=FALSE,results='asis',warning=FALSE}
+df_recd_elg %>% 
+  summarise(age_mean = mean(age,na.rm = T),
+            age_sd = sd(age,na.rm = T)) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Education
+
+```{r,echo=FALSE,results='asis',warning=FALSE}
+df_recd_elg %>% 
+  group_by(edu) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Income
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,3)}
+df_recd_elg %>% 
+  ggplot(aes(x = income)) +
+  geom_bar() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  coord_flip()
+```
+
+## Employment
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,3)}
+df_recd_elg %>% 
+  group_by(employment) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+# Measures
+
+## Message chosen
+
+Which of the following messages do you wish to send to your employee?\
+\
+**dom:** *Your job in this task is to select the shapes that match the description. Make sure you look at them carefully. If you don’t complete the task and do it well, I may not be able to give you the full bonus.*\
+**nondom:** *Your job in this task is to select the shapes that match the description. Make sure you look at them carefully.*
+
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+df_recd_elg %>% 
+  group_by(message_choice) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  mutate(Perc = round(100*(N/sum(N)),2)) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Predicted selection
+
+Do you think your employee will choose to do the task and have a chance for a bonus of up to $1, depending on your choice? Or will they opt to skip the task and the chance for a bonus?
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+df_recd_elg %>% 
+  group_by(message_choice,choice_dom) %>% 
+  summarise(N = n()) %>% 
+  ungroup() %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+
+```
+
+## Predicted Performance
+
+If they choose to do the task after receiving your message, how well will they perform? Their performance can range from 0 points up to 50 points (for perfect performance). Split here by message selection.
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,5),message=F}
+means <- df_recd_elg %>% 
+  group_by(message_choice) %>% 
+  summarise(score = mean(comp_dom,na.rm = T)) %>% 
+  ungroup()
+
+df_recd_elg %>% 
+  ggplot(aes(x = comp_dom)) +
+  geom_histogram(binwidth = 1,
+                 fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(0,50,10),
+                     limits = c(-1,51)) +
+  ylab("frequency") +
+  geom_vline(data = means,mapping = aes(xintercept = score),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank()) +
+  facet_wrap(~message_choice,nrow = 2)
+```
+
+## Predicted Attitude
+
+What will be the impact of this message on your employee's attitude towards you? Split here by which message was selected.
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,5),message=F}
+df_recd_elg %>% 
+  ggplot(aes(x = attitude_dom)) +
+  geom_histogram(binwidth = 1,
+                 fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_recd_elg$attitude_dom,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank())
+```
+
+## Predicted nomination
+
+Do you think your employee will recommend you as a participant in this "good manager" paid follow-up survey?
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,5),message=F}
+
+df_recd_elg %>% 
+  dplyr::select(PID,nompred_dom) %>% 
+  ggplot(aes(x = nompred_dom)) +
+  geom_histogram(binwidth = 1,
+                 fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(0,1,1),
+                     limits = c(-0.5,1.5)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_recd_elg$nompred_dom,na.rm = T),
+             color = "black",
+             linetype = "dashed",
+             size = 1.1) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank())
+```
+
+## Punish decision
+
+For each level of their performance below, please indicate what bonus you would like them to receive. You can select between 0 and 100 cents for each. 100 cents is the full $1.00.
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(6,12),message=F}
+means <- df_recd_elg %>% 
+  dplyr::select(PID,message_choice,keep_1:keep_10) %>% 
+  pivot_longer(-c(PID,message_choice),
+               names_to = "performance",
+               values_to = "keep",
+               names_prefix = "keep_") %>% 
+  mutate(performance = as.numeric(performance)) %>% 
+  mutate(performance = case_when(performance == 1 ~ "0-5 points",
+                                 performance == 2 ~ "6-10 points",
+                                 performance == 3 ~ "11-15 points",
+                                 performance == 4 ~ "16-20 points",
+                                 performance == 5 ~ "21-25 points",
+                                 performance == 6 ~ "26-30 points",
+                                 performance == 7 ~ "31-35 points",
+                                 performance == 8 ~ "36-40 points",
+                                 performance == 9 ~ "41-45 points",
+                                 performance == 10 ~ "46-50 points",
+                                 .default = NA)) %>% 
+  mutate(performance = factor(performance,levels = c("0-5 points",
+                                                     "6-10 points",
+                                                     "11-15 points",
+                                                     "16-20 points",
+                                                     "21-25 points",
+                                                     "26-30 points",
+                                                     "31-35 points",
+                                                     "36-40 points",
+                                                     "41-45 points",
+                                                     "46-50 points"))) %>% 
+  group_by(performance,message_choice) %>% 
+  summarise(score = mean(keep,na.rm = T)) %>% 
+  ungroup()
+
+df_recd_elg %>% 
+  dplyr::select(PID,message_choice,keep_1:keep_10) %>% 
+  pivot_longer(-c(PID,message_choice),
+               names_to = "performance",
+               values_to = "keep",
+               names_prefix = "keep_") %>% 
+  mutate(performance = as.numeric(performance)) %>% 
+  mutate(performance = case_when(performance == 1 ~ "0-5 points",
+                                 performance == 2 ~ "6-10 points",
+                                 performance == 3 ~ "11-15 points",
+                                 performance == 4 ~ "16-20 points",
+                                 performance == 5 ~ "21-25 points",
+                                 performance == 6 ~ "26-30 points",
+                                 performance == 7 ~ "31-35 points",
+                                 performance == 8 ~ "36-40 points",
+                                 performance == 9 ~ "41-45 points",
+                                 performance == 10 ~ "46-50 points",
+                                 .default = NA)) %>% 
+  mutate(performance = factor(performance,levels = c("0-5 points",
+                                                     "6-10 points",
+                                                     "11-15 points",
+                                                     "16-20 points",
+                                                     "21-25 points",
+                                                     "26-30 points",
+                                                     "31-35 points",
+                                                     "36-40 points",
+                                                     "41-45 points",
+                                                     "46-50 points"))) %>% 
+  ggplot(aes(x = keep)) +
+  geom_histogram(binwidth = 1,
+                 fill = "lightblue",
+                 color = "lightblue") +
+  scale_x_continuous(breaks = seq(0,100,10),
+                     limits = c(-1,101)) +
+  ylab("frequency") +
+  geom_vline(data = means,mapping = aes(xintercept = score),
+             color = "black",
+             linetype = "dashed",
+             size = 0.9) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank()) +
+  facet_grid(performance~message_choice)
+```
+
+## Competitive Worldview
+
+1 = *Strongly Disagree* to 7 = *Strongly Agree*\
+\
+1. It’s a dog-eat-dog world where you have to be ruthless at times\
+2. Life is not governed by the "survival of the fittest." We should let compassion and moral laws be our guide [R]\
+3. There is really no such thing as "right" and "wrong." It all boils down to what you can get away with\
+4. One of the most useful skills a person should develop is how to look someone straight in the eye and lie convincingly\
+5. It is better to be loved than to be feared [R]\
+6. My knowledge and experience tell me that the social world we live in is basically a competitive "jungle" in which the fittest survive and succeed, in which power, wealth, and winning are everything, and might is right\
+7. Do unto others as you would have them do unto you, and never do anything unfair to someone else [R]\
+8. Basically people are objects to be quietly and coolly manipulated for one’s own benefit\
+9. Honesty is the best policy in all cases [R]\
+10. One should give others the benefit of the doubt. Most people are trustworthy if you have faith in them [R]
+
+```{r,include=F}
+alpha_score <- df_recd_elg %>% 
+  dplyr::select(CWV_1:CWV_10R) %>% 
+  psych::alpha()
+
+alpha <- alpha_score$total[1]
+```
+
+Cronbach's alpha = `r round(alpha,2)`
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,fig.dim=c(5,3),message=F}
+df_recd_elg %>% 
+  ggplot(aes(x = CWV)) +
+  geom_histogram(binwidth = 0.3,
+                 fill = "lightblue",
+                 color = NA) +
+  scale_x_continuous(breaks = seq(1,7,1),
+                     limits = c(0,8,1)) +
+  ylab("frequency") +
+  geom_vline(xintercept = mean(df_recd_elg$CWV,na.rm = T),
+             color = "black",
+             size = 1.5,
+             linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_line(color = "grey66"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black",
+                                   face = "bold"),
+        axis.title.x = element_blank())
+```
+
+# Correlations
+
+**is_dom:** dummy-coded message chosen (0 = nondom; 1 = dom).\
+**attitude:** predicted impact of the message on employee's attitude towards the manager.\
+**pred_nom:** predicted nomination for "good maanger" survey\
+**comp:** score the employee will get in the task if sent this message.
+
+```{r,fig.align='left',echo=FALSE,warning=FALSE,message=FALSE,fig.dim=c(9,9)}
+df_recd_elg %>% 
+  dplyr::select(CWV,is_dom,attitude_dom,comp_dom,nompred_dom) %>% 
+  corPlot(upper = TRUE,stars = TRUE,xsrt = 270)
+```
+
+
+# Analysis
+
+## Model 1
+
+Linear regression: Competitive worldview as a predictor variable; expected relationship impact of dominant message as an outcome variable.
+
+### Without controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(attitude_dom ~ CWV,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+# apa_table(
+#   apa_lm$table, 
+#   placement = "H"
+# )
+
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(attitude_dom ~ CWV + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Model 2
+
+Linear regression: Competitive worldview as a predictor variable; binary choice of dominant message as an outcome variable.
+
+### Without controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ CWV,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ CWV + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Model 3
+
+Linear regression: Expected relationship impact of dominant message as a predictor variable; binary choice of dominant message as an outcome variable; expected compliance impact of dominant message as a control variable.
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ scale(attitude_dom) + scale(comp_dom),data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+
+```
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ scale(attitude_dom) + scale(comp_dom) + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Model 4
+
+Mediation model: Competitive worldview as a predictor variable; expected relationship impact of dominant message as a mediator; binary choice of dominant message as an outcome variable.
+
+### Without controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- psych::mediate(is_dom ~ CWV + (attitude_dom),data = df_recd_elg)
+```
+
+a = `r round(m1$a,2)` (*p* = `r round(m1$a.reg$prob[2],3)`)\
+b = `r round(m1$b,2)` (*p* = `r round(m1$b.reg$prob[2],3)`)\
+direct = `r round(m1$direct[2],2)` (*p* = `r round(m1$total.reg$prob[2],3)`)\
+indirect = `r round(m1$indirect,2)` (*p* = `r round(m1$cprime.reg$prob[2],3)`)
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- psych::mediate(is_dom ~ CWV + (attitude_dom) + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+```
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- psych::mediate(is_dom ~ CWV + (attitude_dom) + (comp_dom) + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+```
+
+
+# Exploratory Analysis
+
+## "Good manager" survey
+
+All models from the analysis plan, but, instead of the continuous expected relationship impact measure, we will insert the binary expected recommendation to add the manager as a participant in the “good manager” follow-up.
+
+## Model 1
+
+Linear regression: Competitive worldview as a predictor variable; expected nomination in follow-up for dominant message as outcome.
+
+### Without controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(nompred_dom ~ CWV,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(nompred_dom ~ CWV + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Model 2
+
+Linear regression: expected nomination in follow-up for dominant message as a predictor variable; binary choice of dominant message as an outcome variable; expected compliance impact of dominant message as a control variable.
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ nompred_dom + scale(comp_dom),data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- lm(is_dom ~ nompred_dom + scale(comp_dom) + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+apa_lm <- apa_print(m1)
+kbl(apa_lm$table) %>% 
+  kable_styling(bootstrap_options = "hover",
+                full_width = F,
+                position = "left")
+```
+
+## Model 4
+
+Mediation model: Competitive worldview as a predictor variable; expected nomination in follow-up for dominant message as a mediator; binary choice of dominant message as an outcome variable.
+
+### Without controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- psych::mediate(is_dom ~ CWV + (nompred_dom),data = df_recd_elg)
+```
+
+a = `r round(m1$a,2)` (*p* = `r round(m1$a.reg$prob[2],3)`)\
+b = `r round(m1$b,2)` (*p* = `r round(m1$b.reg$prob[2],3)`)\
+direct = `r round(m1$direct[2],2)` (*p* = `r round(m1$total.reg$prob[2],3)`)\
+indirect = `r round(m1$indirect,2)` (*p* = `r round(m1$cprime.reg$prob[2],3)`)
+
+### With controls
+
+```{r,results='asis',echo=FALSE,warning=FALSE,message=FALSE}
+m1 <- psych::mediate(is_dom ~ CWV + (nompred_dom) + age + gender_man + race_white + income_num + edu_num,data = df_recd_elg)
+
+```
+

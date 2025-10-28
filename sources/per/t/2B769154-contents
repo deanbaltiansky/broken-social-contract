@@ -1,0 +1,1974 @@
+---
+title: "The View from the Competitive Jungle"
+subtitle: "Data Preprocessing"
+output: html_document
+---
+
+# Setup
+
+Clear all loaded packages
+
+```{r,include=FALSE}
+detachAllPackages <- function() {
+
+  basic.packages <- c("package:stats","package:graphics","package:grDevices","package:utils","package:datasets","package:methods","package:base")
+
+  package.list <- search()[ifelse(unlist(gregexpr("package:",search()))==1,TRUE,FALSE)]
+
+  package.list <- setdiff(package.list,basic.packages)
+
+  if (length(package.list)>0)  for (package in package.list) detach(package, character.only=TRUE)
+
+}
+
+detachAllPackages()
+```
+
+Load necessary packages
+
+```{r}
+library(tidyverse)
+```
+
+Load raw data (de-identified)
+
+```{r setup, include=FALSE}
+df_s1_raw <- read.csv("https://osf.io/acrv8/download")
+df_s2_raw <- read.csv("https://osf.io/er6a7/download")
+df_s3_managers_raw <- read.csv("https://osf.io/auybd/download")
+df_s3_employees_raw <- read.csv("https://osf.io/m6r9v/download")
+df_s4_raw <- read.csv("https://osf.io/89z3v/download")
+
+df_sup1_raw <- read.csv("https://osf.io/26bxe/download")
+df_sup2a_raw <- read.csv("https://osf.io/9ju8z/download")
+df_sup2b_raw <- read.csv("https://osf.io/gwj4b/download")
+df_sup2c_raw <- read.csv("https://osf.io/zc9wa/download")
+df_sup3_raw <- read.csv("https://osf.io/xhyr4/download")
+df_sup4_raw <- read.csv("https://osf.io/4qc65/download")
+```
+
+# Study 1
+
+remove unfinished responses
+
+```{r}
+#keep only those who finished
+df_s1 <- df_s1_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_s1 <- df_s1 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_s1 <- df_s1 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_s1 <- df_s1 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_s1 <- df_s1 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+attention checks
+
+```{r}
+df_s1 <- df_s1 %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0),
+         att_2 = ifelse(check_2 == 1,1,0))
+```
+
+reverse-score items
+
+```{r}
+#CWV_2, CWV_5, CWV_7, CWV_9, CWV_10, ZSB_5, ZSB_6, ZSB_8, copri_1, copri_2, copri_3, exp_infl_5, exp_infl_9, exp_infl_12, exp_rel_5, exp_rel_9, exp_rel_12, self_5, self_9, self_12, infl_bother, rel_bother
+
+df_s1 <- df_s1 %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10,
+         ZSB_5R = 8 - ZSB_5,
+         ZSB_6R = 8 - ZSB_6,
+         ZSB_8R = 8 - ZSB_8,
+         copri_1R = 8 - copri_1,
+         copri_2R = 8 - copri_2,
+         copri_3R = 8 - copri_3,
+         exp_infl_5R = 8 - exp_infl_5,
+         exp_infl_9R = 8 - exp_infl_9,
+         exp_infl_12R = 8 - exp_infl_12,
+         exp_rel_5R = 8 - exp_rel_5,
+         exp_rel_9R = 8 - exp_rel_9,
+         exp_rel_12R = 8 - exp_rel_12,
+         self_5R = 8 - self_5,
+         self_9R = 8 - self_9,
+         self_12R = 8 - self_12)
+```
+
+mean scores
+
+```{r}
+df_s1 <- df_s1 %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T),
+         ZSB = mean(c(ZSB_1,
+                      ZSB_2,
+                      ZSB_3,
+                      ZSB_4,
+                      ZSB_5R,
+                      ZSB_6R,
+                      ZSB_7,
+                      ZSB_8R),na.rm = T),
+         copri = mean(c(copri_1R,
+                        copri_2R,
+                        copri_3R,
+                        copri_4),na.rm = T),
+         infl_prestige = mean(c(exp_infl_1,
+                                    exp_infl_3,
+                                    exp_infl_5R,
+                                    exp_infl_7,
+                                    exp_infl_10,
+                                    exp_infl_13,
+                                    exp_infl_15),na.rm = T),
+         infl_dominance = mean(c(exp_infl_2,
+                                     exp_infl_4,
+                                     exp_infl_6,
+                                     exp_infl_8,
+                                     exp_infl_9R,
+                                     exp_infl_11,
+                                     exp_infl_12R,
+                                     exp_infl_14,
+                                     exp_infl_16),na.rm = T),
+         rel_prestige = mean(c(exp_rel_1,
+                                    exp_rel_3,
+                                    exp_rel_5R,
+                                    exp_rel_7,
+                                    exp_rel_10,
+                                    exp_rel_13,
+                                    exp_rel_15),na.rm = T),
+         rel_dominance = mean(c(exp_rel_2,
+                                     exp_rel_4,
+                                     exp_rel_6,
+                                     exp_rel_8,
+                                     exp_rel_9R,
+                                     exp_rel_11,
+                                     exp_rel_12R,
+                                     exp_rel_14,
+                                     exp_rel_16),na.rm = T),
+         self_prestige = mean(c(self_1,
+                                    self_3,
+                                    self_5R,
+                                    self_7,
+                                    self_10,
+                                    self_13,
+                                    self_15),na.rm = T),
+         self_dominance = mean(c(self_2,
+                                     self_4,
+                                     self_6,
+                                     self_8,
+                                     self_9R,
+                                     self_11,
+                                     self_12R,
+                                     self_14,
+                                     self_16),na.rm = T),
+         TOPS_coer = mean(c(TOPS_coer_1,
+                            TOPS_coer_2,
+                            TOPS_coer_3,
+                            TOPS_coer_4,
+                            TOPS_coer_5,
+                            TOPS_coer_6,
+                            TOPS_coer_7,
+                            TOPS_coer_8,
+                            TOPS_coer_9,
+                            TOPS_coer_10),na.rm = T),
+         TOPS_coll = mean(c(TOPS_coll_1,
+                            TOPS_coll_2,
+                            TOPS_coll_3,
+                            TOPS_coll_4,
+                            TOPS_coll_5,
+                            TOPS_coll_6,
+                            TOPS_coll_7,
+                            TOPS_coll_8,
+                            TOPS_coll_9,
+                            TOPS_coll_10),na.rm = T),
+         care_rel = mean(c(rel_care,
+                           rel_bother),na.rm = T),
+         care_infl = mean(c(infl_care,
+                            infl_bother),na.rm = T)) %>% 
+  ungroup()
+```
+
+add eligibility column
+
+```{r}
+#eligible participants are those who are employed (full or part time) and those who passed two attention checks.
+
+df_s1 <- df_s1 %>% 
+  mutate(elg_att = ifelse(att_1 == 1 & att_2 == 1,1,0),
+         elg_emp = ifelse(employment == "Retired" | 
+                            employment == "Unemployed" |
+                            employment == "Homemaker",0,1),
+         elg = ifelse(elg_att == 1 & elg_emp == 1,1,0))
+```
+
+taking only necessary variables
+
+```{r}
+df_s1 <- df_s1 %>% 
+  dplyr::select(PID,
+         CWV:care_infl,
+         tradeoff,
+         CWV_1,
+         CWV_2R,
+         CWV_3,
+         CWV_4,
+         CWV_5R,
+         CWV_6,
+         CWV_7R,
+         CWV_8,
+         CWV_9R,
+         CWV_10R,
+         ZSB_1,
+         ZSB_2,
+         ZSB_3,
+         ZSB_4,
+         ZSB_5R,
+         ZSB_6R,
+         ZSB_7,
+         ZSB_8R,
+         copri_1R,
+         copri_2R,
+         copri_3R,
+         copri_4,
+         exp_infl_1,
+         exp_infl_3,
+         exp_infl_5R,
+         exp_infl_7,
+         exp_infl_10,
+         exp_infl_13,
+         exp_infl_15,
+         exp_infl_2,
+         exp_infl_4,
+         exp_infl_6,
+         exp_infl_8,
+         exp_infl_9R,
+         exp_infl_11,
+         exp_infl_12R,
+         exp_infl_14,
+         exp_infl_16,
+         exp_rel_1,
+         exp_rel_3,
+         exp_rel_5R,
+         exp_rel_7,
+         exp_rel_10,
+         exp_rel_13,
+         exp_rel_15,
+         exp_rel_2,
+         exp_rel_4,
+         exp_rel_6,
+         exp_rel_8,
+         exp_rel_9R,
+         exp_rel_11,
+         exp_rel_12R,
+         exp_rel_14,
+         exp_rel_16,
+         self_1,
+         self_3,
+         self_5R,
+         self_7,
+         self_10,
+         self_13,
+         self_15,
+         self_2,
+         self_4,
+         self_6,
+         self_8,
+         self_9R,
+         self_11,
+         self_12R,
+         self_14,
+         self_16,
+         TOPS_coer_1,
+         TOPS_coer_2,
+         TOPS_coer_3,
+         TOPS_coer_4,
+         TOPS_coer_5,
+         TOPS_coer_6,
+         TOPS_coer_7,
+         TOPS_coer_8,
+         TOPS_coer_9,
+         TOPS_coer_10,
+         TOPS_coll_1,
+         TOPS_coll_2,
+         TOPS_coll_3,
+         TOPS_coll_4,
+         TOPS_coll_5,
+         TOPS_coll_6,
+         TOPS_coll_7,
+         TOPS_coll_8,
+         TOPS_coll_9,
+         TOPS_coll_10,
+         rel_care,
+         rel_bother,
+         infl_care,
+         infl_bother,
+         elg,
+         att_1,
+         att_2,
+         age,
+         employment,
+         race,
+         gender,
+         income,
+         edu,
+         feedback)
+```
+
+# Study 2
+
+remove unfinished responses
+
+```{r}
+#keep only those who finished
+df_s2 <- df_s2_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_s2 <- df_s2 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_s2 <- df_s2 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_s2 <- df_s2 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_s2 <- df_s2 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+attention checks
+
+```{r}
+df_s2 <- df_s2 %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0))
+```
+
+reverse-score items
+
+```{r}
+#CWV_2, CWV_5, CWV_7, CWV_9, CWV_10
+#self_5, self_9, self_12
+
+df_s2 <- df_s2 %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_s2 <- df_s2 %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+add eligibility column
+
+```{r}
+#eligible participants are those who are employed (full or part time) and those who passed an attention check.
+
+df_s2 <- df_s2 %>% 
+  mutate(elg_emp = ifelse(employment == "Retired" | 
+                            employment == "Homemaker" |
+                            employment == "Student" |
+                            employment == "Other",0,1),
+         elg = ifelse(att_1 == 1 & elg_emp == 1,1,0)) 
+```
+
+taking only necessary variables
+
+```{r}
+df_s2 <- df_s2 %>% 
+  dplyr::select(PID,
+                CWV,
+                react,
+                impact_rel:impact_quit,
+                own_likeman,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                att_1,
+                elg,
+                og_pid,
+                task,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study 3: Managers
+
+remove unfinished responses
+
+```{r}
+#keep only those who finished
+df_s3_managers <- df_s3_managers_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+attention checks
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0))
+```
+
+reverse-score items
+
+```{r}
+#CWV_2, CWV_5, CWV_7, CWV_9, CWV_10
+
+df_s3_managers <- df_s3_managers %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+recode some things
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  rename(comp_dom = comp_dom_1,
+         comp_nondom = comp_nondom_1) %>% 
+  mutate(choice_dom = ifelse(choice_dom == 1,"do-task","skip-task"),
+         choice_nondom = ifelse(choice_nondom == 1,"do-task","skip-task"),
+         nompred_dom = ifelse(message_choice == "dom",nompred_sameaschoice,nompred_otherchoice),
+         nompred_nondom = ifelse(message_choice == "nondom",nompred_sameaschoice,nompred_otherchoice))
+```
+
+add eligibility column
+
+```{r}
+#eligible participants are those who passed an attention check.
+
+df_s3_managers <- df_s3_managers %>% 
+  mutate(elg = ifelse(att_1 == 1,1,0))
+```
+
+taking only necessary variables
+
+```{r}
+df_s3_managers <- df_s3_managers %>% 
+  dplyr::select(PID,
+                message_choice,
+                CWV,
+                choice_dom:proj_nondom,
+                nompred_dom,
+                nompred_nondom,
+                keep_1:keep_10,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                att_1,
+                elg,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study 3: Employees
+
+remove unfinished responses
+
+```{r}
+#keep only those who finished
+df_s3_employees <- df_s3_employees_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+fixing rec
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  mutate(rec = ifelse(rec == 2,0,1))
+```
+
+taking only necessary variables
+
+```{r}
+df_s3_employees <- df_s3_employees %>% 
+  dplyr::select(PID,
+                choice,
+                points,
+                attitude,
+                rec,
+                is_dom,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study 4
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_s4 <- df_s4_raw %>%
+  filter(Finished == 1) %>%
+  filter(Progress == 100) %>%
+  filter(intro == 4)
+```
+
+Put NA's where necessary
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+reverse-score items
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_s4 <- df_s4 %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R))) %>% 
+  ungroup()
+```
+
+fixing and renaming some variables
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(reflection = ifelse(cond == "pos",cond_pos,cond_neg),
+         pred_choice = ifelse(message_choice == 1,choice_dom,choice_nondom),
+         pred_comp = ifelse(message_choice == 1,comp_dom_1,comp_nondom_1),
+         pred_att = ifelse(message_choice == 1,attitude_dom,attitude_nondom),
+         choicedom = ifelse(message_choice == 2,0,1),
+         pred_choice = ifelse(pred_choice == 1,"do","skip"),
+         message_choice = ifelse(message_choice == 1,"dom","nondom"))
+```
+
+create continuous preference dv
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(pref_dom = preference,
+         pref_nondom = case_when(preference == 4 ~ 3,
+                                 preference == 5 ~ 2,
+                                 preference == 6 ~ 1,
+                                 .default = NA),
+         pref_cont = ifelse(message_choice == "dom",pref_dom,pref_nondom))
+```
+
+
+attention check #1
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0))
+```
+
+attention check #2
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(att_2 = ifelse(check_2 == 14285733,0,1))
+```
+
+eligibility
+
+```{r}
+df_s4 <- df_s4 %>% 
+  mutate(is_elg = ifelse(att_1 == 1 & att_2 == 1,1,0))
+```
+
+taking only necessary variables
+
+```{r}
+df_s4 <- df_s4 %>% 
+  dplyr::select(PID,
+                cond,
+                reflection,
+                choicedom,
+                message_choice,
+                pref_cont,
+                CWV,
+                pred_choice,
+                pred_comp,
+                pred_att,
+                keep_1:keep_10,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                att_1,
+                att_2,
+                is_elg,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 1
+
+remove unfinished responses
+
+```{r}
+#keep only those who finished
+df_sup1 <- df_sup1_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+attention checks
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0))
+```
+
+reverse-score items
+
+```{r}
+#CWV_2, CWV_5, CWV_7, CWV_9, CWV_10
+#self_5, self_9, self_12
+
+df_sup1 <- df_sup1 %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+add eligibility column
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(non_emp = ifelse(employment %in% c("Homemaker",
+                                            "Other",
+                                            "Retired",
+                                            "Student"),1,0),
+         elg = ifelse(att_1 == 1 & non_emp == 0,1,0)) 
+```
+
+add block order variable
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  mutate(block_order = ifelse(FL_166_DO_CWV == 1,"CWV_first","desc_first"))
+```
+
+taking only necessary variables
+
+```{r}
+df_sup1 <- df_sup1 %>% 
+  dplyr::select(PID,
+                CWV,
+                impact_rel:impact_quit,
+                own_likeman,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                att_1,
+                elg,
+                og_pid,
+                block_order,
+                task,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 2a
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_sup2a <- df_sup2a_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100) %>% 
+  filter(intro == 4)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+reverse-score items
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  mutate(CWV_4R = 8 - CWV_4,
+         CWV_5R = 8 - CWV_5)
+```
+
+mean scores
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2,
+                      CWV_3,
+                      CWV_4R,
+                      CWV_5R),na.rm = T)) %>% 
+  ungroup()
+```
+
+taking only necessary variables
+
+```{r}
+df_sup2a <- df_sup2a %>% 
+  dplyr::select(PID,
+                cond,
+                reflection,
+                impact_open,
+                CWV,
+                impact_rel:impact_comp,
+                behav_likely,
+                CWV_1,
+                CWV_2,
+                CWV_3,
+                CWV_4R,
+                CWV_5R,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 2b
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_sup2b <- df_sup2b_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100) %>% 
+  filter(intro == 4)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+reverse-score items
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(CWV_4R = 8 - CWV_4,
+         CWV_5R = 8 - CWV_5)
+```
+
+mean scores
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2,
+                      CWV_3,
+                      CWV_4R,
+                      CWV_5R),na.rm = T)) %>% 
+  ungroup()
+```
+
+attention check
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  mutate(is_elg = ifelse(check_1 == 3,1,0))
+```
+
+
+taking only necessary variables
+
+```{r}
+df_sup2b <- df_sup2b %>% 
+  dplyr::select(PID,
+                cond,
+                reflection,
+                impact_open,
+                impact_rel:impact_comp,
+                behav_likely,
+                CWV,
+                CWV_1,
+                CWV_2,
+                CWV_3,
+                CWV_4R,
+                CWV_5R,
+                is_elg,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 2c
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_sup2c <- df_sup2c_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100) %>% 
+  filter(intro == 4)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+reverse-score items
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T),
+         exp_rel = mean(c(exp_rel_1,
+                          exp_rel_2,
+                          exp_rel_4,
+                          exp_rel_6),na.rm = T),
+         exp_infl = mean(c(exp_infl_1,
+                           exp_infl_2,
+                           exp_infl_4,
+                           exp_infl_6),na.rm = T),
+         dom = mean(c(dom_1,
+                      dom_2,
+                      dom_4,
+                      dom_6),na.rm = T)) %>% 
+  ungroup()
+```
+
+attention check
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(is_elg = ifelse(check_1 == 1,1,0))
+```
+
+put desc and refl in one column
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(desc = ifelse(cond == "high",desc_high,desc_low),
+         refl = ifelse(cond == "high",refl_high,refl_low))
+```
+
+order
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  mutate(blockorder = ifelse(FL_239_DO_Relationshipexpectancies == 1,"rel_first","infl_first"))
+```
+
+
+taking only necessary variables
+
+```{r}
+df_sup2c <- df_sup2c %>% 
+  dplyr::select(PID,
+                cond,
+                desc,
+                refl,
+                CWV,
+                exp_rel,
+                exp_infl,
+                dom,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                exp_rel_1,
+                exp_rel_2,
+                exp_rel_4,
+                exp_rel_6,
+                exp_infl_1,
+                exp_infl_2,
+                exp_infl_4,
+                exp_infl_6,
+                dom_1,
+                dom_2,
+                dom_4,
+                dom_6,
+                is_elg,
+                blockorder,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 3
+
+remove unfinished responses
+
+```{r}
+df_sup3 <- df_sup3_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup3 <- df_sup3 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup3 <- df_sup3 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup3 <- df_sup3 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+define income and edu as factors
+
+```{r}
+df_sup3 <- df_sup3 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+taking only necessary variables
+
+```{r}
+df_sup3 <- df_sup3 %>% 
+  dplyr::select(PID,
+                dom_rating,
+                nondom_rating,
+                def,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+# Study Sup 4
+
+remove ineligible participants
+
+```{r}
+#keep only those who finished
+df_sup4 <- df_sup4_raw %>% 
+  filter(Finished == 1) %>% 
+  filter(Progress == 100)
+```
+
+Put NA's where necessary
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  mutate(income = ifelse(income == "Prefer not to answer",NA,income))
+```
+
+when more than one race -> change to multiracial
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  mutate(race_num_1 = ifelse(race_1 != "",1,0),
+         race_num_2 = ifelse(race_2 != "",1,0),
+         race_num_3 = ifelse(race_3 != "",1,0),
+         race_num_4 = ifelse(race_4 != "",1,0),
+         race_num = race_num_1 + race_num_2 + race_num_3 + race_num_4,
+         race = ifelse(race_num > 1,"multiracial",paste0(race_1,race_2,race_3,race_4)),
+         race = ifelse(race == "",NA,race))
+```
+
+employment
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  mutate(employment = ifelse(Employment_1 == "Full-time",Employment_1,
+                             ifelse(Employment_2 == "Part-time",Employment_2,"")),
+         employ_char_3 = ifelse(is.na(Employment_3) | Employment_3 == "","",
+                                ifelse(employment == "",Employment_3,
+                                       paste0(", ",Employment_3))),
+         employ_char_4 = ifelse(is.na(Employment_4) | Employment_4 == "","",
+                                ifelse(employment == "",Employment_4,
+                                       paste0(", ",Employment_4))),
+         employ_char_5 = ifelse(is.na(Employment_5) | Employment_5 == "","",
+                                ifelse(employment == "",Employment_5,
+                                       paste0(", ",Employment_5))),
+         employ_char_6 = ifelse(is.na(Employment_6) | Employment_6 == "","",
+                                ifelse(employment == "",Employment_6,
+                                       paste0(", ",Employment_6))),
+         employ_char_7 = ifelse(is.na(Employment_7) | Employment_7 == "","",
+                                ifelse(employment == "",Employment_7,
+                                       paste0(", ",Employment_7))),
+         employ_char_8 = ifelse(is.na(Employment_8) | Employment_8 == "","",
+                                ifelse(employment == "",Employment_8,
+                                       paste0(", ",Employment_8))),
+         employ_char_9 = ifelse(is.na(Employment_9) | Employment_9 == "","",
+                                ifelse(employment == "",Employment_9,
+                                       paste0(", ",Employment_9))),
+         employment = paste0(employment,employ_char_3,employ_char_4,employ_char_5,employ_char_6,employ_char_7,employ_char_8,employ_char_9))
+```
+
+
+define income and edu as factors
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  mutate(income = factor(income,c("$0-$20,000",
+                                  "$20,001-$40,000",
+                                  "$40,001-$60,000",
+                                  "$60,001-$80,000",
+                                  "$80,001-$100,000",
+                                  "$100,001-$120,000",
+                                  "$120,001-$140,000",
+                                  "$140,001-$160,000",
+                                  "$160,001-$180,000",
+                                  "$180,001-$200,000",
+                                  "Over $200,000")),
+         edu = factor(edu,c("noHS",
+                            "GED",
+                            "2yearColl",
+                            "4yearColl",
+                            "MA",
+                            "PHD")))
+```
+
+attention checks
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  mutate(att_1 = ifelse(check_1 == 5,1,0))
+```
+
+reverse-score items
+
+```{r}
+#CWV_2, CWV_5, CWV_7, CWV_9, CWV_10
+
+df_sup4 <- df_sup4 %>% 
+  mutate(CWV_2R = 8 - CWV_2,
+         CWV_5R = 8 - CWV_5,
+         CWV_7R = 8 - CWV_7,
+         CWV_9R = 8 - CWV_9,
+         CWV_10R = 8 - CWV_10)
+```
+
+mean scores
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  rowwise() %>% 
+  mutate(CWV = mean(c(CWV_1,
+                      CWV_2R,
+                      CWV_3,
+                      CWV_4,
+                      CWV_5R,
+                      CWV_6,
+                      CWV_7R,
+                      CWV_8,
+                      CWV_9R,
+                      CWV_10R),na.rm = T)) %>% 
+  ungroup()
+```
+
+recode some things
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  rename(comp_dom = comp_dom_1,
+         comp_nondom = comp_nondom_1) %>% 
+  mutate(choice_dom = ifelse(choice_dom == 1,"do-task","skip-task"),
+         choice_nondom = ifelse(choice_nondom == 1,"do-task","skip-task"),
+         nompred_dom = ifelse(message_choice == "dom",nompred_sameaschoice,nompred_otherchoice),
+         nompred_nondom = ifelse(message_choice == "nondom",nompred_sameaschoice,nompred_otherchoice))
+```
+
+taking only necessary variables
+
+```{r}
+df_sup4 <- df_sup4 %>% 
+  dplyr::select(PID,
+                message_choice,
+                CWV,
+                choice_dom:attitude_nondom,
+                nompred_dom,
+                nompred_nondom,
+                keep_1:keep_10,
+                CWV_1,
+                CWV_2R,
+                CWV_3,
+                CWV_4,
+                CWV_5R,
+                CWV_6,
+                CWV_7R,
+                CWV_8,
+                CWV_9R,
+                CWV_10R,
+                att_1,
+                age,
+                race,
+                edu,
+                income,
+                gender,
+                employment,
+                feedback)
+```
+
+
+
+# Write processed df's to csv
+
+```{r}
+#SEE OUTPUT ON OSF
+
+# write.csv(df_s1,"~/Google Drive/My Drive/dominance/osf materials/data/df_s1.csv",row.names = F)
+# write.csv(df_s2,"~/Google Drive/My Drive/dominance/osf materials/data/df_s2.csv",row.names = F)
+# write.csv(df_s3_managers,"~/Google Drive/My Drive/dominance/osf materials/data/df_s3_managers.csv",row.names = F)
+# write.csv(df_s3_employees,"~/Google Drive/My Drive/dominance/osf materials/data/df_s3_employees.csv",row.names = F)
+# write.csv(df_s4,"~/Google Drive/My Drive/dominance/osf materials/data/df_s4.csv",row.names = F)
+
+# write.csv(df_sup1,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup1.csv",row.names = F)
+# write.csv(df_sup2a,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup2a.csv",row.names = F)
+# write.csv(df_sup2b,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup2b.csv",row.names = F)
+# write.csv(df_sup2c,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup2c.csv",row.names = F)
+# write.csv(df_sup3,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup3.csv",row.names = F)
+# write.csv(df_sup4,"~/Google Drive/My Drive/dominance/osf materials/data/df_sup4.csv",row.names = F)
+
+```
+
