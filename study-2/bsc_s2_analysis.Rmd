@@ -50,6 +50,7 @@ library(factoextra)
 library(SnowballC)
 library(hunspell)
 library(quanteda)
+library(effectsize)
 
 repo_url <- "https://raw.githubusercontent.com/deanbaltiansky/broken-social-contract/main/study-2/data/"
 
@@ -952,9 +953,13 @@ kbl(apa_lm$table) %>%
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
 m1 <- lm(antiest_z ~ brokenpromise_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
+eta_table <- eta_squared(m1)
+etas_for_table <- c(NA,eta_table$Eta2_partial)
 apa_lm <- apa_print(m1)
+table_for_print <- apa_lm$table %>% 
+  mutate(eta2 = round(etas_for_table,3))
  
-kbl(apa_lm$table) %>% 
+kbl(table_for_print) %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
@@ -1022,9 +1027,13 @@ kbl(apa_lm$table) %>%
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
 m1 <- lm(change_z ~ brokenpromise_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
+eta_table <- eta_squared(m1)
+etas_for_table <- c(NA,eta_table$Eta2_partial)
 apa_lm <- apa_print(m1)
+table_for_print <- apa_lm$table %>% 
+  mutate(eta2 = round(etas_for_table,3))
  
-kbl(apa_lm$table) %>% 
+kbl(table_for_print) %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
@@ -1092,9 +1101,13 @@ kbl(apa_lm$table) %>%
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
 m1 <- lm(trust_deminst_z ~ brokenpromise_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
+eta_table <- eta_squared(m1)
+etas_for_table <- c(NA,eta_table$Eta2_partial)
 apa_lm <- apa_print(m1)
+table_for_print <- apa_lm$table %>% 
+  mutate(eta2 = round(etas_for_table,3))
  
-kbl(apa_lm$table) %>% 
+kbl(table_for_print) %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
@@ -1162,9 +1175,13 @@ kbl(apa_lm$table) %>%
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
 m1 <- lm(trust_natinst_z ~ brokenpromise_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
+eta_table <- eta_squared(m1)
+etas_for_table <- c(NA,eta_table$Eta2_partial)
 apa_lm <- apa_print(m1)
+table_for_print <- apa_lm$table %>% 
+  mutate(eta2 = round(etas_for_table,3))
  
-kbl(apa_lm$table) %>% 
+kbl(table_for_print) %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
@@ -1232,13 +1249,16 @@ kbl(apa_lm$table) %>%
 ```{r,results='asis',echo=TRUE,warning=FALSE,message=FALSE}
 m1 <- lm(vote_likely_z ~ brokenpromise_z + ideo_con_z + SDO_z + TIPI_agree_z + man + white + hispanic + income_num_z + edu_num_z + age_z + county_medianincome_z + county_gini_z + county_density_z,data = df_bsc_elg)
 
+eta_table <- eta_squared(m1)
+etas_for_table <- c(NA,eta_table$Eta2_partial)
 apa_lm <- apa_print(m1)
+table_for_print <- apa_lm$table %>% 
+  mutate(eta2 = round(etas_for_table,3))
  
-kbl(apa_lm$table) %>% 
+kbl(table_for_print) %>% 
   kable_styling(bootstrap_options = "hover",
                 full_width = F,
                 position = "left")
-
 ```
 
 ## Identifying the driving values
