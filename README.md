@@ -1,7 +1,5 @@
 # broken-social-contract
-## Intro
-This is the a repo of a research project on the effects of a broken social contract on different aspects of political discontent: anti-establishment sentiment; distrust in institutions; support for radical change.
-## Abstract
+
 What are the consequences of a broken social contract? The current research posits that political discontent—the dissatisfaction with, distrust in, and desire to change political institutions—is driven by the subjective experience of a broken social contract. Specifically, in three nationally representative American samples (total N = 3,960), we show that those who believe that the government is not living up to its founding promise are more likely to endorse anti-establishment sentiment, support radical change, and distrust national institutions. We do this by employing advanced computational methods of natural language processing (Study 1), identifying the overarching guiding values that drive political discontent (Study 2), and experimentally manipulating the subjective experience of a broken social contract (Study 3). This research highlights the social contract—an implicit agreement between a state and its citizens—as an important lens through which to understand growing political discontent in the U.S.
 
 
